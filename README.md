@@ -1,4 +1,6 @@
-Hi, I am Rob. I do DevOps stuff, mostly with C# and Azure/Azure DevOps/GitHub.
+Hi, I am Rob. 
+
+I do DevOps-y stuff, mostly with C# and Azure/Azure DevOps/GitHub.
 I experiment with a lot of this stuff here on GitHub, and blog about it [here](https://rajbos.github.io).
 
 ## Community | GDBC
