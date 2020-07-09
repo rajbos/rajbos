@@ -1,4 +1,4 @@
-# Hi, I am Rob. 
+## Hi, I am Rob. 
 I do DevOps-y stuff, mostly with C# and Azure/Azure DevOps/GitHub.
 I experiment with a lot of this stuff here on GitHub, and blog about it [here](https://rajbos.github.io).
 
@@ -13,7 +13,7 @@ In my day job I work for Xpirit as a DevOps consultant, helping our customers wi
 ## AzDo Marketplace updates :robot:
 I created a Twitter bot named [AzDoMarketNews](https://twitter.com/azdomarketnews) to keep up to date on new and improved extensions on the Azure DevOps marketplace.
 
-# About :gear:
+## About :gear:
 * Name: Rob Bos
 * Pronouns He/Him
 * Twitter: [@robbos81](https://twitter.com/robbos81)
