@@ -1,4 +1,4 @@
-## Hi, I am Rob. 
+## Hi, I am Rob :wave:
 I do DevOps-y stuff, mostly with C# and Azure/Azure DevOps/GitHub.
 I experiment with a lot of this stuff here on GitHub, and blog about it [here](https://rajbos.github.io).
 
