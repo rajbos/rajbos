@@ -11,8 +11,9 @@ This year I've started vlogging about the relevant information/announcements/bac
 In my day job I work for Xpirit [link](https://www.xpirit.com/rob) as a DevOps consultant, helping our customers with whatever they need regarding development. 
 Wether it's training, finding out some obscure issues, setting up their CI/CD pipelines, or helping them on their way to implement more DevOps patterns and practices, I help them with it.
 
-## AzDo Marketplace updates :robot:
-I created a Twitter bot named [AzDoMarketNews](https://twitter.com/azdomarketnews) to keep up to date on new and improved extensions on the Azure DevOps marketplace.
+## Twitter Bots :robot:
+* AzDo Marketplace updates: I created a Twitter bot named [AzDoMarketNews](https://twitter.com/azdomarketnews) to keep up to date on new and improved extensions on the Azure DevOps marketplace.
+* GitHub Action updates: I created a Twitter bot named [GitHubActions](https://twitter.com/GitHubActions) to keep up to date on new and improved actions on the GitHub marketplace.
 
 ## About :gear:
 * Name: Rob Bos
