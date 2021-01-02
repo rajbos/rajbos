@@ -17,7 +17,8 @@ Wether it's training, finding out some obscure issues, setting up their CI/CD pi
 
 ## About :gear:
 * Name: Rob Bos
-* Pronouns He/Him
+* Pronouns: He/Him
+* Locale: The Netherlands
 * Twitter: [@robbos81](https://twitter.com/robbos81)
 * LinkedIn: [linkedin.com/in/bosrob](https://linkedin.com/in/bosrob)
 * Sessionize: [sessionize.com/RobBos/](https://sessionize.com/RobBos/)
