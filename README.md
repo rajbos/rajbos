@@ -1,8 +1,8 @@
 ## Hi, I am Rob :wave:
-I do DevOps-y stuff, mostly with C# and Azure/Azure DevOps/GitHub.
-I experiment with a lot of this stuff here on GitHub, and blog about it [here](https://rajbos.github.io). 
-The dog in my profile photo is our Labrador named "Flynn". 
-![Rob photo](https://rajbos.github.io/images/rob_photo.png)
+I do DevOps-y stuff, mostly with C# and Azure/Azure DevOps/GitHub.  
+I experiment with a lot of this stuff here on GitHub, and blog about it [here](https://rajbos.github.io).   
+The dog in my profile photo is our Labrador named "Flynn".   
+![Rob photo](https://rajbos.github.io/images/rob_photo.png)  
 
 ## Community | GDBC :otter:
 I help out with the Global DevOps Bootcamp ([link](https://globaldevopsbootcamp.com)), mostly with automating stuff and setting up the infrastructure we need each year.  
