@@ -17,8 +17,7 @@ Wether it's training, finding out some obscure issues, setting up their CI/CD pi
 
 ## About :gear:
 <div style="width:100%">
-    <div style="float:left">
-    <span markdown="1">
+    <div style="float:left" markdown="1">
 
         * Name: Rob Bos
         * Pronouns: He/Him
@@ -30,7 +29,6 @@ Wether it's training, finding out some obscure issues, setting up their CI/CD pi
         * Blog: [rajbos.github.io](http://rajbos.github.io)
         * DevOps Principles series: [YouTube](https://www.youtube.com/playlist?list=PLXVVwOM8uv2wQyhQ7mB_Nv_iXyMuXf-GT)
 
-    </span>
     </div>
 
     <div style="float:right">
