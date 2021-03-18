@@ -16,8 +16,13 @@ Wether it's training, finding out some obscure issues, setting up their CI/CD pi
 * GitHub Action updates: I created a Twitter bot named [GitHubActions](https://twitter.com/GitHubActions) to keep up to date on new and improved actions on the GitHub marketplace.
 
 ## About :gear:
-<div style="width:100%">
-    <span style="float:left" markdown="1">
+<style>
+.leftPane {
+ float:left;
+}
+</style>
+
+    <span id="sp1" class="leftPane" style="float:left" markdown="1">
 
         * Name: Rob Bos
         * Pronouns: He/Him
