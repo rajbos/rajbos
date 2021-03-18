@@ -16,12 +16,29 @@ Wether it's training, finding out some obscure issues, setting up their CI/CD pi
 * GitHub Action updates: I created a Twitter bot named [GitHubActions](https://twitter.com/GitHubActions) to keep up to date on new and improved actions on the GitHub marketplace.
 
 ## About :gear:
-* Name: Rob Bos
-* Pronouns: He/Him
-* Locale: The Netherlands
-* Twitter: [@robbos81](https://twitter.com/robbos81)
-* LinkedIn: [linkedin.com/in/bosrob](https://linkedin.com/in/bosrob)
-* Sessionize: [sessionize.com/RobBos/](https://sessionize.com/RobBos/)
-* Work: [xpirit.com/Rob](https://xpirit.com/rob)
-* Blog: [rajbos.github.io](http://rajbos.github.io)
-* DevOps Principles series: [YouTube](https://www.youtube.com/playlist?list=PLXVVwOM8uv2wQyhQ7mB_Nv_iXyMuXf-GT).
+<div style="width:100%">
+    <div style="float:left">
+    <span markdown="1">
+
+        * Name: Rob Bos
+        * Pronouns: He/Him
+        * Locale: The Netherlands
+        * Twitter: [@robbos81](https://twitter.com/robbos81)
+        * LinkedIn: [linkedin.com/in/bosrob](https://linkedin.com/in/bosrob)
+        * Sessionize: [sessionize.com/RobBos/](https://sessionize.com/RobBos/)
+        * Work: [xpirit.com/Rob](https://xpirit.com/rob)
+        * Blog: [rajbos.github.io](http://rajbos.github.io)
+        * DevOps Principles series: [YouTube](https://www.youtube.com/playlist?list=PLXVVwOM8uv2wQyhQ7mB_Nv_iXyMuXf-GT)
+
+    </span>
+    </div>
+
+    <div style="float:right">
+        <span markdown="1">
+
+            ![Rob photo](https://rajbos.github.io/images/rob_photo.png)
+
+        </span>
+    </div>
+
+</div>
