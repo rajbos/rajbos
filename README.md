@@ -4,6 +4,14 @@ I experiment with a lot of this stuff here on GitHub, and blog about it [here](h
 The dog in my profile photo is our Labrador named "Flynn".   
 ![Rob photo](https://rajbos.github.io/images/rob_photo.png)  
 
+## GitHub Actions Internal Marketplace 🍵
+To create an internal marketplace for your org I've created guidance in [this blogpost](https://devopsjournal.io/blog/2021/10/14/GitHub-Actions-Internal-Marketplace) and created multiple repositories that can help:
+* Internal Markplace Website: [repo](https://github.com/rajbos/github-actions-requests)
+* Keeping your forks up to date: [repo](https://github.com/rajbos/github-fork-updater)
+* Loading the actions from your internal marketplace: [repo](https://github.com/rajbos/github-action-load-available-actions)
+* Loading the actions used in your organization: [repo](https://github.com/rajbos/github-action-load-used-actions)
+Project that (tries to) keep the current overall state for these projects visible: [link](https://github.com/users/rajbos/projects/1)
+
 ## Community | GDBC :otter:
 I help out with the Global DevOps Bootcamp ([link](https://globaldevopsbootcamp.com)), mostly with automating stuff and setting up the infrastructure we need each year.  
 In the 2019 edition we had over 10.000 attendees spread out all over the world, spending their free Saturday with our platform getting hands-on experience on DevOps topics.  
