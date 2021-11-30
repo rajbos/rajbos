@@ -10,6 +10,7 @@ To create an internal marketplace for your org I've created guidance in [this bl
 * Keeping your forks up to date: [repo](https://github.com/rajbos/github-fork-updater)
 * Loading the actions from your internal marketplace: [repo](https://github.com/rajbos/github-action-load-available-actions)
 * Loading the actions used in your organization: [repo](https://github.com/rajbos/github-action-load-used-actions)  
+* Request actions to be added to your internal actions marketplace: [repo](https://github.com/rajbos/github-actions-requests)  
 
 Project that (tries to) keep the current overall state for these projects visible: [link](https://github.com/users/rajbos/projects/1)
 
