@@ -1,8 +1,8 @@
 ## Hi, I am Rob :wave:
 I do DevOps-y stuff, mostly with C# and Azure/Azure DevOps/GitHub.  
-I experiment with a lot of this stuff here on GitHub, and blog about it [here](https://rajbos.github.io).   
+I experiment with a lot of this stuff here on GitHub, and blog about it [here](https://devopsjournal.io).   
 The dog in my profile photo is our Labrador named "Flynn".   
-![Rob photo](https://rajbos.github.io/images/rob_photo.png)  
+![Rob photo](https://devopsjournal.io/images/rob_photo.png)  
 
 ## GitHub Actions Internal Marketplace 🍵
 To create an internal marketplace for your org I've created guidance in [this blogpost](https://devopsjournal.io/blog/2021/10/14/GitHub-Actions-Internal-Marketplace) and created multiple repositories that can help:
@@ -35,5 +35,5 @@ Whether it's training, finding out some obscure issues, setting up their CI/CD p
 * LinkedIn: [linkedin.com/in/bosrob](https://linkedin.com/in/bosrob)
 * Sessionize: [sessionize.com/RobBos/](https://sessionize.com/RobBos/)
 * Work: [xpirit.com/Rob](https://xpirit.com/rob)
-* Blog: [rajbos.github.io](http://rajbos.github.io)
+* Blog: [rajbos.github.io](https://devopsjournal.io)
 * DevOps Principles series: [YouTube](https://www.youtube.com/playlist?list=PLXVVwOM8uv2wQyhQ7mB_Nv_iXyMuXf-GT)
