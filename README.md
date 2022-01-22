@@ -35,5 +35,5 @@ Whether it's training, finding out some obscure issues, setting up their CI/CD p
 * LinkedIn: [linkedin.com/in/bosrob](https://linkedin.com/in/bosrob)
 * Sessionize: [sessionize.com/RobBos/](https://sessionize.com/RobBos/)
 * Work: [xpirit.com/Rob](https://xpirit.com/rob)
-* Blog: [rajbos.github.io](https://devopsjournal.io)
+* Blog: [devopsjournal.io](https://devopsjournal.io)
 * DevOps Principles series: [YouTube](https://www.youtube.com/playlist?list=PLXVVwOM8uv2wQyhQ7mB_Nv_iXyMuXf-GT)
