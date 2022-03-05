@@ -4,7 +4,7 @@ I experiment with a lot of this stuff here on GitHub, and blog about it [here](h
 The dog in my profile photo is our Labrador named "Flynn".   
 ![Rob photo](https://devopsjournal.io/images/rob_photo.png)  
 
-# 🍵 Latest blog posts
+## 🍵 Latest blog posts
 <!-- BLOG-POST-LIST:START -->
 - [GitHub Codespaces creation with the CLI](https://devopsjournal.io/blog/2022/01/26/GitHub-Codespace-creation-with-the-cli)
 - [Automating my home setup: turning on the lights when the camera is in use](https://devopsjournal.io/blog/2022/01/17/Automating-my-presence)
