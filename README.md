@@ -4,6 +4,15 @@ I experiment with a lot of this stuff here on GitHub, and blog about it [here](h
 The dog in my profile photo is our Labrador named "Flynn".   
 ![Rob photo](https://devopsjournal.io/images/rob_photo.png)  
 
+## 🍵 Latest blog posts
+<!-- BLOG-POST-LIST:START -->
+- [GitHub Codespaces creation with the CLI](https://devopsjournal.io/blog/2022/01/26/GitHub-Codespace-creation-with-the-cli)
+- [Automating my home setup: turning on the lights when the camera is in use](https://devopsjournal.io/blog/2022/01/17/Automating-my-presence)
+- [GitHub Tokens explained](https://devopsjournal.io/blog/2022/01/03/GitHub-Tokens)
+- [Create a GitHub App from a manifest](https://devopsjournal.io/blog/2021/12/27/GitHub-App-from-manifest)
+- [Maturity levels of using GitHub Actions Securely](https://devopsjournal.io/blog/2021/12/11/GitHub-Actions-Maturity-Levels)
+<!-- BLOG-POST-LIST:END -->
+
 ## GitHub Actions Internal Marketplace 🍵
 To create an internal marketplace for your org I've created guidance in [this blogpost](https://devopsjournal.io/blog/2021/10/14/GitHub-Actions-Internal-Marketplace) and created multiple repositories that can help:
 * Internal Markplace Website: [repo](https://github.com/rajbos/github-actions-requests)
