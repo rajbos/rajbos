@@ -1,4 +1,4 @@
-name: updater:
+name: updater
   schedule:
     - cron: '* * 6 * *'
   workflow_dispatch:
