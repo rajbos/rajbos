@@ -11,7 +11,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         
-      - name: Pull in laat 5 blog posts
+      - name: Pull in last 5 blog posts
         uses: rajbos-actions/blog-post-workflow@master
         with:
           feed_list: "https://devopsjournal.io/blog/atom.xml"

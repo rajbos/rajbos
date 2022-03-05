@@ -4,6 +4,10 @@ I experiment with a lot of this stuff here on GitHub, and blog about it [here](h
 The dog in my profile photo is our Labrador named "Flynn".   
 ![Rob photo](https://devopsjournal.io/images/rob_photo.png)  
 
+# 🍵 Latest blog posts
+<!-- BLOG-POST-LIST:START -->
+<!-- BLOG-POST-LIST:END -->
+
 ## GitHub Actions Internal Marketplace 🍵
 To create an internal marketplace for your org I've created guidance in [this blogpost](https://devopsjournal.io/blog/2021/10/14/GitHub-Actions-Internal-Marketplace) and created multiple repositories that can help:
 * Internal Markplace Website: [repo](https://github.com/rajbos/github-actions-requests)
