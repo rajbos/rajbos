@@ -1,6 +1,7 @@
 name: updater
+on:  
   schedule:
-    - cron: '* * 6 * *'
+    - cron: '5 23 * * 6'
   workflow_dispatch:
 
 jobs:
