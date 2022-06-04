@@ -6,11 +6,11 @@ The dog in my profile photo is our Labrador named "Flynn".
 
 ## 🍵 Latest blog posts
 <!-- BLOG-POST-LIST:START -->
+- [Creating a GitHub Action](https://devopsjournal.io/blog/2022/06/01/creating-a-github-action)
+- [Code Europe: Protect your code with GitHub&#39;s security features](https://devopsjournal.io/blog/2022/05/30/Code-Europe)
 - [Speaking at NDC Security &lpar;Oslo&rpar;](https://devopsjournal.io/blog/2022/04/06/Speaking-at-NDC-Security)
 - [GitHub Notification Settings](https://devopsjournal.io/blog/2022/03/12/GitHub-notification-settings)
 - [Configuration as Code for the GitHub platform](https://devopsjournal.io/blog/2022/03/12/GitHub-config-as-code)
-- [GitHub Codespaces creation with the CLI](https://devopsjournal.io/blog/2022/01/26/GitHub-Codespace-creation-with-the-cli)
-- [Automating my home setup: turning on the lights when the camera is in use](https://devopsjournal.io/blog/2022/01/17/Automating-my-presence)
 <!-- BLOG-POST-LIST:END -->
 
 ## GitHub Actions Internal Marketplace 🍵
