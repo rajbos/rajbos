@@ -6,11 +6,11 @@ The dog in my profile photo is our Labrador named "Flynn".
 
 ## 🍵 Latest blog posts
 <!-- BLOG-POST-LIST:START -->
+- [LinkedIn Learning: GitHub Advanced Security](https://devopsjournal.io/blog/2022/10/19/LinkedIn-Learning-GHAS)
+- [How GitHub Actions versioning system works](https://devopsjournal.io/blog/2022/10/19/How-GitHub-Actions-versioning-works)
 - [Enabling GitHub Actions on Enterprise Server: Common gotcha&#39;s](https://devopsjournal.io/blog/2022/10/08/Enabling-GitHub-Actions-on-Enterprise-Server)
 - [Techorama NL: Protect yourself against supply chain attacks](https://devopsjournal.io/blog/2022/10/05/Techorama-NL)
 - [Presentation dotnetsheff - Protect your code with GitHub security features](https://devopsjournal.io/blog/2022/09/21/dotnetsheff-github-security-features)
-- [Analyzing the GitHub marketplace - Dependency security is a big issue](https://devopsjournal.io/blog/2022/09/18/Analysing-the-GitHub-marketplace)
-- [My GitHub Actions workflows are not starting](https://devopsjournal.io/blog/2022/08/12/workflows-not-starting)
 <!-- BLOG-POST-LIST:END -->
 
 ## GitHub Actions Internal Marketplace 🍵
