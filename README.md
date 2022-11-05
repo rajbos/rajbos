@@ -6,11 +6,11 @@ The dog in my profile photo is our Labrador named "Flynn".
 
 ## 🍵 Latest blog posts
 <!-- BLOG-POST-LIST:START -->
+- [Working with GitHub secrets without admin rights](https://devopsjournal.io/blog/2022/11/02/GitHub-secrets-without-admin-rights)
 - [LinkedIn Learning: GitHub Advanced Security](https://devopsjournal.io/blog/2022/10/19/LinkedIn-Learning-GHAS)
 - [How GitHub Actions versioning system works](https://devopsjournal.io/blog/2022/10/19/How-GitHub-Actions-versioning-works)
 - [Enabling GitHub Actions on Enterprise Server: Common gotcha&#39;s](https://devopsjournal.io/blog/2022/10/08/Enabling-GitHub-Actions-on-Enterprise-Server)
 - [Techorama NL: Protect yourself against supply chain attacks](https://devopsjournal.io/blog/2022/10/05/Techorama-NL)
-- [Presentation dotnetsheff - Protect your code with GitHub security features](https://devopsjournal.io/blog/2022/09/21/dotnetsheff-github-security-features)
 <!-- BLOG-POST-LIST:END -->
 
 ## GitHub Actions Internal Marketplace 🍵
