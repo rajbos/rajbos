@@ -6,11 +6,11 @@ The dog in my profile photo is our Labrador named "Flynn".
 
 ## 🍵 Latest blog posts
 <!-- BLOG-POST-LIST:START -->
+- [Adding OSSF scorecard action to your repo](https://devopsjournal.io/blog/2022/12/08/Adding-OSSF-scorecard-action-to-your-repo)
 - [Examples for calling the GitHub GraphQL API &lpar;with ProjectsV2&rpar;](https://devopsjournal.io/blog/2022/11/28/github-graphql-queries)
 - [Working with GitHub secrets without admin rights](https://devopsjournal.io/blog/2022/11/02/GitHub-secrets-without-admin-rights)
 - [LinkedIn Learning: GitHub Advanced Security](https://devopsjournal.io/blog/2022/10/19/LinkedIn-Learning-GHAS)
 - [How GitHub Actions versioning system works](https://devopsjournal.io/blog/2022/10/19/How-GitHub-Actions-versioning-works)
-- [Enabling GitHub Actions on Enterprise Server: Common gotcha&#39;s](https://devopsjournal.io/blog/2022/10/08/Enabling-GitHub-Actions-on-Enterprise-Server)
 <!-- BLOG-POST-LIST:END -->
 
 ## GitHub Actions Internal Marketplace 🍵
