@@ -4,6 +4,17 @@ I experiment with a lot of this stuff here on GitHub, and blog about it [here](h
 The dog in my profile photo is our Labrador named "Flynn".   
 ![Rob photo](https://devopsjournal.io/images/rob_photo.png)  
 
+## 🔗 Connect with me
+<!--<a rel="me" href="https://mstdn.social/@Rob_Bos">Mastodon</a>-->
+[![Mastodon](./images/light/mastodon.svg#|width=60px&height=20px)](https://mstdn.social/@Rob_Bos) [![LinkedIn](./images/light/linkedin.svg#|width=60px&height=60px)](https://www.linkedin.com/in/bosrob) [![stackoverflow](./images/light/stackoverflow.svg#|width=60px&height=60px)](https://stackoverflow.com/users/4395661/rob-bos) [![youtube](./images/light/youtube.svg#|width=60px&height=60px)](https://www.youtube.com/@Rob-Bos/) [![rss](./images/light/rss.svg#|width=60px&height=60px)](https://devopsjournal.io/)
+
+<hr/>
+
+## 💗 Sponsor me
+You can [sponsor me](https://github.com/sponsors/rajbos/) using GitHub sponsors or Ko-fi!
+
+<hr/>
+
 ## 🍵 Latest blog posts
 <!-- BLOG-POST-LIST:START -->
 - [Improving your GitHub repositories security setup by adding the OSSF scorecard action](https://devopsjournal.io/blog/2022/12/08/Adding-OSSF-scorecard-action-to-your-repo)
