@@ -1,5 +1,5 @@
 ## Hi, I am Rob :wave:
-I do DevOps-y stuff, mostly with C# and Azure/Azure DevOps/GitHub.  
+I do DevOps-y stuff, mostly with C# and Azure/Azure DevOps/GitHub. As a job I am a DevOps consultant and (GitHub) Trainer at [Xpirit](www.xpirit.com).  
 I experiment with a lot of this stuff here on GitHub, and blog about it [here](https://devopsjournal.io).   
 The dog in my profile photo is our Labrador named "Flynn".   
 ![Rob photo](https://devopsjournal.io/images/rob_photo.png)  
@@ -35,13 +35,15 @@ To create an internal marketplace for your org I've created guidance in [this bl
 Project that (tries to) keep the current overall state for these projects visible: [link](https://github.com/users/rajbos/projects/1)
 
 ## Community | GDBC :otter:
-I help out with the Global DevOps Bootcamp ([link](https://globaldevopsbootcamp.com)), mostly with automating stuff and setting up the infrastructure we need each year.  
-In the 2019 edition we had over 10.000 attendees spread out all over the world, spending their free Saturday with our platform getting hands-on experience on DevOps topics.  
-For the 2020 edition I've started vlogging about the relevant information/announcements/background stuff [here](https://www.youtube.com/playlist?list=PLCnpc4jNC9lBWh-oq3aaPfFP5_tUMy7ZJ) and I have spoken about the event and platform for it several times. The session on DevOps Fest 2020 was recorded [here](https://www.youtube.com/watch?v=JJOnXj3pbKU&list=PLuOBDBq7MW73LKG7492aCRpSkLqqlJp32&index=25).
+I help out with the Global DevOps Bootcamp ([link](https://globaldevopsbootcamp.com)), mostly with automating stuff and setting up the infrastructure we need each year. In the 2019 edition we had over 10.000 attendees spread out all over the world, spending their free Saturday with our platform getting hands-on experience on DevOps topics. For the 2020 edition I've started vlogging about the relevant information/announcements/background stuff [here](https://www.youtube.com/playlist?list=PLCnpc4jNC9lBWh-oq3aaPfFP5_tUMy7ZJ) and I have spoken about the event and platform for it several times. The session on DevOps Fest 2020 was recorded [here](https://www.youtube.com/watch?v=JJOnXj3pbKU&list=PLuOBDBq7MW73LKG7492aCRpSkLqqlJp32&index=25).
 
 ## Work | Xpirit :hammer:
-In my day job I work for Xpirit [link](https://www.xpirit.com/rob) as a DevOps consultant, helping our customers with whatever they need regarding development. 
-Whether it's training, finding out some obscure issues, setting up their CI/CD pipelines, or helping them on their way to implement more DevOps patterns and practices, I help them with it.
+In my day job I work for Xpirit [link](https://www.xpirit.com/rob) as a DevOps consultant and Trainer, helping our customers with whatever they need regarding development. Whether it's training, finding out some obscure issues, setting up their CI/CD pipelines, or helping them on their way to implement more DevOps patterns and practices, I help them with it.
+
+Some of the trainings I give regularly:
+- GitHub for Developers
+- GitHub Actions Fundamentals
+- GitHub Advanced Security
 
 ## Twitter Bots :robot:
 * AzDo Marketplace updates: I created a Twitter bot named [AzDoMarketNews](https://twitter.com/azdomarketnews) to keep up to date on new and improved extensions on the Azure DevOps marketplace.
@@ -51,7 +53,7 @@ Whether it's training, finding out some obscure issues, setting up their CI/CD p
 * Name: Rob Bos
 * Pronouns: He/Him
 * Locale: The Netherlands
-* Twitter: [@robbos81](https://twitter.com/robbos81)
+* Mastodon: [@Rob_Bos@mstdn.social](https://mstdn.social/@Rob_Bos)
 * LinkedIn: [linkedin.com/in/bosrob](https://linkedin.com/in/bosrob)
 * Sessionize: [sessionize.com/RobBos/](https://sessionize.com/RobBos/)
 * Work: [xpirit.com/Rob](https://xpirit.com/rob)
