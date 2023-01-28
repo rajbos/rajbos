@@ -17,11 +17,11 @@ You can [sponsor me](https://github.com/sponsors/rajbos/) using GitHub sponsors 
 
 ## 🍵 Latest blog posts
 <!-- BLOG-POST-LIST:START -->
+- [Making the case for GitHub&#39;s Secret scanning](https://devopsjournal.io/blog/2023/01/22/Making-the-case-for-secret-scanning)
 - [Improving your GitHub repositories security setup by adding the OSSF scorecard action](https://devopsjournal.io/blog/2022/12/08/Adding-OSSF-scorecard-action-to-your-repo)
 - [Examples for calling the GitHub GraphQL API &lpar;with ProjectsV2&rpar;](https://devopsjournal.io/blog/2022/11/28/github-graphql-queries)
 - [Working with GitHub secrets without admin rights](https://devopsjournal.io/blog/2022/11/02/GitHub-secrets-without-admin-rights)
 - [LinkedIn Learning: GitHub Advanced Security](https://devopsjournal.io/blog/2022/10/19/LinkedIn-Learning-GHAS)
-- [How GitHub Actions versioning system works](https://devopsjournal.io/blog/2022/10/19/How-GitHub-Actions-versioning-works)
 <!-- BLOG-POST-LIST:END -->
 
 ## GitHub Actions Internal Marketplace 🍵
