@@ -17,11 +17,11 @@ You can [sponsor me](https://github.com/sponsors/rajbos/) using GitHub sponsors 
 
 ## 🍵 Latest blog posts
 <!-- BLOG-POST-LIST:START -->
+- [Speaking at GOTO; Aarhus 2023](https://devopsjournal.io/blog/2023/05/24/goto-aarhus)
+- [GitHub Advanced Security for Azure DevOps](https://devopsjournal.io/blog/2023/05/23/GitHub-Advanced-Security-Azure-DevOps)
 - [Speaking at VSLive! Nashville 2023](https://devopsjournal.io/blog/2023/05/17/VSLive-Nashville)
 - [How Copilot/AI helps me in my daily work](https://devopsjournal.io/blog/2023/04/24/how-Copilot-helps-me-in-my-daily-work)
 - [Enabling CodeQL on GitHub Enterprise Server](https://devopsjournal.io/blog/2023/02/07/Enabling-codeql-on-GitHub-Enterprise-Server)
-- [Making the case for GitHub&#39;s Secret scanning](https://devopsjournal.io/blog/2023/01/22/Making-the-case-for-secret-scanning)
-- [Improving your GitHub repositories security setup by adding the OSSF scorecard action](https://devopsjournal.io/blog/2022/12/08/Adding-OSSF-scorecard-action-to-your-repo)
 <!-- BLOG-POST-LIST:END -->
 
 ## GitHub Actions Internal Marketplace 🍵
