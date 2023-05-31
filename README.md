@@ -26,7 +26,7 @@ You can [sponsor me](https://github.com/sponsors/rajbos/) using GitHub sponsors 
 
 ## GitHub Actions Internal Marketplace 🍵
 To create an internal marketplace for your org I've created guidance in [this blogpost](https://devopsjournal.io/blog/2021/10/14/GitHub-Actions-Internal-Marketplace) and created multiple repositories that can help:
-* Internal Markplace Website: [repo](https://github.com/rajbos/github-actions-requests)
+* Internal Markplace Website: [repo](https://github.com/rajbos/actions-marketplace)
 * Keeping your forks up to date: [repo](https://github.com/rajbos/github-fork-updater)
 * Loading the actions from your internal marketplace: [repo](https://github.com/rajbos/github-action-load-available-actions)
 * Loading the actions used in your organization: [repo](https://github.com/rajbos/github-action-load-used-actions)  
