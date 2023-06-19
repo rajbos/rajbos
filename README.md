@@ -2,7 +2,7 @@
 I do DevOps-y stuff, mostly with C# and Azure/Azure DevOps/GitHub. As a job I am a DevOps consultant and (GitHub) Trainer at [Xpirit](www.xpirit.com).  
 I experiment with a lot of this stuff here on GitHub, and blog about it [here](https://devopsjournal.io).   
 The dog in my profile photo is our Labrador named "Flynn".   
-![Rob photo](https://devopsjournal.io/images/rob_photo.png)  
+![Rob photo](https://devopsjournal.io/images/Rob_OnStage.png)  
 
 ## 🔗 Connect with me
 <!--<a rel="me" href="https://mstdn.social/@Rob_Bos">Mastodon</a>-->
