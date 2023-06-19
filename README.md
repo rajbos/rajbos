@@ -37,10 +37,13 @@ Project that (tries to) keep the current overall state for these projects visibl
 ## LinkedIn Learning
 I am a LinkedIn Learning instructor building out the courses I have at the platform sharing my knowledge on the topics. They are available for you to learn more on:
 - [GitHub Advanced Security](https://www.linkedin.com/learning/github-advanced-security/github-advanced-security?autoplay=true)
+- [25 GitHub configuration files you should be using](https://www.linkedin.com/learning/25-github-configuration-files-you-should-be-using/25-github-files-you-should-know-about)
+
 More courses are on the way!
 
 ## Community | GDBC :otter:
-I help out with the Global DevOps Bootcamp ([link](https://globaldevopsbootcamp.com)), mostly with automating stuff and setting up the infrastructure we need each year. In the 2019 edition we had over 10.000 attendees spread out all over the world, spending their free Saturday with our platform getting hands-on experience on DevOps topics. For the 2020 edition I've started vlogging about the relevant information/announcements/background stuff [here](https://www.youtube.com/playlist?list=PLCnpc4jNC9lBWh-oq3aaPfFP5_tUMy7ZJ) and I have spoken about the event and platform for it several times. The session on DevOps Fest 2020 was recorded [here](https://www.youtube.com/watch?v=JJOnXj3pbKU&list=PLuOBDBq7MW73LKG7492aCRpSkLqqlJp32&index=25).
+I have helped out with the Global DevOps Bootcamp ([link](https://globaldevopsbootcamp.com)), mostly with automating stuff and setting up the infrastructure we need each year. In the 2019 edition we had over 10.000 attendees spread out all over the world, spending their free Saturday with our platform getting hands-on experience on DevOps topics. For the 2020 edition I've started vlogging about the relevant information/announcements/background stuff [here](https://www.youtube.com/playlist?list=PLCnpc4jNC9lBWh-oq3aaPfFP5_tUMy7ZJ) and I have spoken about the event and platform for it several times. The session on DevOps Fest 2020 was recorded [here](https://www.youtube.com/watch?v=JJOnXj3pbKU&list=PLuOBDBq7MW73LKG7492aCRpSkLqqlJp32&index=25).  
+
 Find out more about my upcoming conferences on my [blog](https://devopsjournal.io/blog/about).
 
 ## Work | Xpirit :hammer:
@@ -50,10 +53,6 @@ Some of the trainings I give regularly:
 - GitHub for Developers
 - GitHub Actions Fundamentals
 - GitHub Advanced Security
-
-## Twitter Bots :robot:
-* AzDo Marketplace updates: I created a Twitter bot named [AzDoMarketNews](https://twitter.com/azdomarketnews) to keep up to date on new and improved extensions on the Azure DevOps marketplace.
-* GitHub Action updates: I created a Twitter bot named [GitHubActions](https://twitter.com/GitHubActions) to keep up to date on new and improved actions on the GitHub marketplace.
 
 ## About :gear:
 * Name: Rob Bos
