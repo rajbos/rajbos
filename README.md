@@ -17,11 +17,11 @@ You can [sponsor me](https://github.com/sponsors/rajbos/) using GitHub sponsors 
 
 ## 🍵 Latest blog posts
 <!-- BLOG-POST-LIST:START -->
+- [Slides for Developer Week &#39;23](https://devopsjournal.io/blog/2023/06/29/Sessions-DWX23)
 - [Cleaning up files changed by a GitHub Action that runs in a container](https://devopsjournal.io/blog/2023/06/21/GitHub-container-based-Action-cleanup)
 - [Writing to the $GITHUB_STEP_SUMMARY with the core npm package](https://devopsjournal.io/blog/2023/06/08/GITHUB_STEP_SUMMARY)
 - [Speaking at GOTO; Aarhus 2023](https://devopsjournal.io/blog/2023/05/24/goto-aarhus)
 - [GitHub Advanced Security for Azure DevOps](https://devopsjournal.io/blog/2023/05/23/GitHub-Advanced-Security-Azure-DevOps)
-- [Speaking at VSLive! Nashville 2023](https://devopsjournal.io/blog/2023/05/17/VSLive-Nashville)
 <!-- BLOG-POST-LIST:END -->
 
 ## GitHub Actions Internal Marketplace 🍵
