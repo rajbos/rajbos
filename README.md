@@ -18,10 +18,10 @@ You can [sponsor me](https://github.com/sponsors/rajbos/) using GitHub sponsors 
 ## 🍵 Latest blog posts
 <!-- BLOG-POST-LIST:START -->
 - [Best viewed blogposts of 2023](https://devopsjournal.io/blog/2023/12/20/best-blogposts-2023)
+- [New LinkedIn Learning course! GitHub Advanced Security for Azure DevOps](https://devopsjournal.io/blog/2023/12/20/GHAzDo-LinkedInLearning)
 - [Dependabot alerts triaging in GitHub](https://devopsjournal.io/blog/2023/10/07/Dependabot-alert-triaging)
 - [Get alerts from GitHub Advanced Security for Azure DevOps](https://devopsjournal.io/blog/2023/09/02/Get-alerts-from-GHAzDo)
 - [Slides for Developer Week &#39;23](https://devopsjournal.io/blog/2023/06/29/Sessions-DWX23)
-- [Cleaning up files changed by a GitHub Action that runs in a container](https://devopsjournal.io/blog/2023/06/21/GitHub-container-based-Action-cleanup)
 <!-- BLOG-POST-LIST:END -->
 
 ## GitHub Actions Internal Marketplace 🍵
