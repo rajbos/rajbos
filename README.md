@@ -1,5 +1,5 @@
 ## Hi, I am Rob :wave:
-I do DevOps-y stuff, mostly with C# and Azure/Azure DevOps/GitHub. As a job I am a DevOps consultant and (GitHub) Trainer at [Xpirit](www.xpirit.com).  
+I do DevOps-y stuff, mostly with C# and Azure/Azure DevOps/GitHub. As a job I am a DevOps consultant and (GitHub) Trainer at [Xebia](https://www.xebia.com).  
 I experiment with a lot of this stuff here on GitHub, and blog about it [here](https://devopsjournal.io).   
 The dog in my profile photo is our Labrador named "Flynn".   
 ![Rob photo](https://devopsjournal.io/images/Rob_OnStage.png)  
@@ -46,8 +46,8 @@ I have helped out with the Global DevOps Bootcamp ([link](https://globaldevopsbo
 
 Find out more about my upcoming conferences on my [blog](https://devopsjournal.io/blog/about).
 
-## Work | Xpirit :hammer:
-In my day job I work for Xpirit [link](https://www.xpirit.com/rob) as a DevOps consultant and Trainer, helping our customers with whatever they need regarding development. Whether it's training, finding out some obscure issues, setting up their CI/CD pipelines, or helping them on their way to implement more DevOps patterns and practices, I help them with it.
+## Work | Xebia :hammer:
+In my day job I work for Xebia [link](https://www.xebia.com/) as a DevOps consultant and Trainer, helping our customers with whatever they need regarding development. Whether it's training, finding out some obscure issues, setting up their CI/CD pipelines, or helping them on their way to implement more DevOps patterns and practices, I help them with it.
 
 Some of the trainings I give regularly:
 - GitHub for Developers
@@ -61,6 +61,6 @@ Some of the trainings I give regularly:
 * Mastodon: [@Rob_Bos@mstdn.social](https://mstdn.social/@Rob_Bos)
 * LinkedIn: [linkedin.com/in/bosrob](https://linkedin.com/in/bosrob)
 * Sessionize: [sessionize.com/RobBos/](https://sessionize.com/RobBos/)
-* Work: [xpirit.com/Rob](https://xpirit.com/rob)
+* Work: [xebia.com/](https://xebia.com/)
 * Blog: [devopsjournal.io](https://devopsjournal.io)
 * DevOps Principles series: [YouTube](https://www.youtube.com/playlist?list=PLXVVwOM8uv2wQyhQ7mB_Nv_iXyMuXf-GT)
