@@ -17,11 +17,11 @@ You can [sponsor me](https://github.com/sponsors/rajbos/) using GitHub sponsors 
 
 ## 🍵 Latest blog posts
 <!-- BLOG-POST-LIST:START -->
+- [GitHub Copilot Power User example](https://devopsjournal.io/blog/2024/06/05/GitHub-Copilot-Power-User)
 - [GHAS Code Security Configuration](https://devopsjournal.io/blog/2024/04/27/GHAS-code-security-configuration)
 - [Running GHAzDo CodeQL on self-hosted runners](https://devopsjournal.io/blog/2024/01/22/Running-GHAzDO-CodeQL-on-selfhosted-runners)
 - [Best viewed blogposts of 2023](https://devopsjournal.io/blog/2023/12/20/best-blogposts-2023)
 - [New LinkedIn Learning course! GitHub Advanced Security for Azure DevOps](https://devopsjournal.io/blog/2023/12/20/GHAzDo-LinkedInLearning)
-- [Dependabot alerts triaging in GitHub](https://devopsjournal.io/blog/2023/10/07/Dependabot-alert-triaging)
 <!-- BLOG-POST-LIST:END -->
 
 ## GitHub Actions Internal Marketplace 🍵
