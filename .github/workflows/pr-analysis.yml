@@ -1,0 +1,62 @@
+name: PR Analysis with Copilot Detection
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      output_format:
+        description: 'Output format (json or csv)'
+        required: false
+        default: 'json'
+        type: choice
+        options:
+          - json
+          - csv
+
+jobs:
+  analyze-prs:
+    name: Analyze Pull Requests and Copilot Collaboration
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      pull-requests: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run PR analysis
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OUTPUT_FORMAT: ${{ github.event.inputs.output_format || 'json' }}
+        run: |
+          python scripts/pr_analysis.py
+      
+      - name: Upload analysis results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-analysis-results
+          path: pr_analysis_*.json
+          retention-days: 30
+      
+      - name: Upload CSV results (if generated)
+        uses: actions/upload-artifact@v4
+        if: env.OUTPUT_FORMAT == 'csv' || github.event.inputs.output_format == 'csv'
+        with:
+          name: pr-analysis-results-csv
+          path: pr_analysis_*.csv
+          retention-days: 30
