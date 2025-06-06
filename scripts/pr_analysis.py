@@ -162,7 +162,7 @@ class GitHubPRAnalyzer:
             self.repo_privacy_cache[repo_name] = is_private_repository(repo_data)
         return {'private': self.repo_privacy_cache[repo_name]}
     
-    def get_pull_requests(self, since_date: datetime, repo_name: str = None) -> List[Dict[str, Any]]:
+    def get_pull_requests(self, since_date: datetime, repo_name: str = None, repo_owner: str = None, filter_by_user: bool = False) -> List[Dict[str, Any]]:
         """Fetch all pull requests from the repository since the given date."""
         prs = []
         page = 1
