@@ -410,6 +410,7 @@ class GitHubPRAnalyzer:
             # Get privacy info for single repo
             self.get_repository_info(self.repo)
             is_private = self.repo_privacy_cache.get(self.repo, False)
+            print(f"Repository privacy: {is_private}")
             masked_repo = mask_private_repo_name(self.repo, is_private)
             print(f"Fetching pull requests from {self.owner}/{masked_repo} since {three_months_ago.date()}...")
             prs = self.get_pull_requests(three_months_ago, self.repo)
@@ -426,6 +427,7 @@ class GitHubPRAnalyzer:
                 repo_name = repo['name']                
                 is_private = self.repo_privacy_cache.get(repo_name, False)
                 masked_repo_name = mask_private_repo_name(repo_name, is_private)
+                print(f"Repository privacy: {is_private} for repository: {masked_repo_name}")
                 if should_show_analysis_message(is_private):
                     print(f"Analyzing repository: {masked_repo_name}")
                 try:
