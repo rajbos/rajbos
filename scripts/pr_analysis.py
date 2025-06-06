@@ -17,6 +17,7 @@ import csv
 from datetime import datetime, timedelta
 from collections import defaultdict
 import requests
+import requests_cache
 from typing import List, Dict, Any, Optional
 
 
@@ -50,6 +51,41 @@ class GitHubPRAnalyzer:
         self.base_url = 'https://api.github.com'
         # Cache for repository privacy information
         self.repo_privacy_cache: Dict[str, bool] = {}
+        
+        # Set up HTTP caching
+        self._setup_cache()
+    
+    def _setup_cache(self):
+        """Set up HTTP request caching with 4-hour expiration."""
+        cache_dir = os.path.join(os.getcwd(), '.http_cache')
+        os.makedirs(cache_dir, exist_ok=True)
+        
+        # Install cache with 4-hour expiration
+        self.session = requests_cache.CachedSession(
+            cache_name=os.path.join(cache_dir, 'github_api_cache'),
+            backend='sqlite',
+            expire_after=timedelta(hours=4),
+            allowable_codes=[200, 404],  # Cache successful responses and 404s
+            allowable_methods=['GET'],   # Only cache GET requests
+            stale_if_error=True         # Return stale cache if request fails
+        )
+    
+    def get_cache_info(self) -> Dict[str, Any]:
+        """Get information about the HTTP cache."""
+        cache_info = {
+            'cache_enabled': hasattr(self, 'session') and hasattr(self.session, 'cache'),
+            'cache_size': 0,
+            'cache_location': None
+        }
+        
+        if hasattr(self, 'session') and hasattr(self.session, 'cache'):
+            try:
+                cache_info['cache_size'] = len(self.session.cache.responses)
+                cache_info['cache_location'] = str(self.session.cache.db_path) if hasattr(self.session.cache, 'db_path') else 'unknown'
+            except Exception as e:
+                cache_info['error'] = str(e)
+        
+        return cache_info
     
     def get_user_repositories(self) -> List[Dict[str, Any]]:
         """Fetch all repositories for the user."""
@@ -67,7 +103,7 @@ class GitHubPRAnalyzer:
                 'per_page': per_page
             }
             
-            response = requests.get(url, headers=self.headers, params=params)
+            response = self.session.get(url, headers=self.headers, params=params)
             response.raise_for_status()
             
             page_repos = response.json()
@@ -102,7 +138,7 @@ class GitHubPRAnalyzer:
                 'per_page': per_page
             }
             
-            response = requests.get(url, headers=self.headers, params=params)
+            response = self.session.get(url, headers=self.headers, params=params)
             response.raise_for_status()
             
             page_orgs = response.json()
@@ -135,7 +171,7 @@ class GitHubPRAnalyzer:
                 'per_page': per_page
             }
             
-            response = requests.get(url, headers=self.headers, params=params)
+            response = self.session.get(url, headers=self.headers, params=params)
             response.raise_for_status()
             
             page_repos = response.json()
@@ -156,7 +192,7 @@ class GitHubPRAnalyzer:
         """Fetch repository information and cache privacy status."""
         if repo_name not in self.repo_privacy_cache:
             url = f'{self.base_url}/repos/{self.owner}/{repo_name}'
-            response = requests.get(url, headers=self.headers)
+            response = self.session.get(url, headers=self.headers)
             response.raise_for_status()
             repo_data = response.json()
             self.repo_privacy_cache[repo_name] = is_private_repository(repo_data)
@@ -184,7 +220,7 @@ class GitHubPRAnalyzer:
                 'per_page': per_page
             }
             
-            response = requests.get(url, headers=self.headers, params=params)
+            response = self.session.get(url, headers=self.headers, params=params)
             response.raise_for_status()
             
             page_prs = response.json()
@@ -246,7 +282,7 @@ class GitHubPRAnalyzer:
             raise ValueError("Repository name is required")
             
         url = f'{self.base_url}/repos/{target_owner}/{target_repo}/pulls/{pr_number}/commits'
-        response = requests.get(url, headers=self.headers)
+        response = self.session.get(url, headers=self.headers)
         response.raise_for_status()
         return response.json()
     
@@ -550,6 +586,13 @@ def main():
         is_private = analyzer.repo_privacy_cache.get(repo, False)
         masked_repo = mask_private_repo_name(repo, is_private)
         print(f"Analyzing repository: {owner}/{masked_repo}")
+    
+    # Print cache information
+    cache_info = analyzer.get_cache_info()
+    print(f"Cache enabled: {cache_info['cache_enabled']}")
+    if cache_info['cache_enabled']:
+        print(f"Cache location: {cache_info['cache_location']}")
+        print(f"Cached responses: {cache_info.get('cache_size', 'unknown')}")
     
     try:
         results = analyzer.analyze_pull_requests()

@@ -43,6 +43,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
+      - name: Download HTTP cache
+        uses: actions/download-artifact@v4
+        with:
+          name: http-cache
+          path: .http_cache
+        continue-on-error: true
+      
       - name: Run PR analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
@@ -55,6 +62,14 @@ jobs:
         if: env.OUTPUT_FORMAT == 'json' || github.event.inputs.output_format != 'csv'
         run: |
           python scripts/generate_mermaid_charts.py
+      
+      - name: Upload HTTP cache
+        uses: actions/upload-artifact@v4
+        with:
+          name: http-cache
+          path: .http_cache/
+          retention-days: 1
+        if: always()
       
       - name: Upload analysis results
         uses: actions/upload-artifact@v4
