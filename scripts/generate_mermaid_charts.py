@@ -14,6 +14,23 @@ from datetime import datetime
 from typing import Dict, Any, List, Tuple
 
 
+def is_running_in_ci() -> bool:
+    """Check if the script is running in a CI environment (GitHub Actions)."""
+    return os.getenv('GITHUB_ACTIONS', '').lower() == 'true' or os.getenv('CI', '').lower() == 'true'
+
+
+def mask_private_info_for_display(value: str) -> str:
+    """Mask sensitive information for display when running in CI."""
+    if is_running_in_ci():
+        if value and value not in ['all_repositories', 'N/A', 'unknown']:
+            # Check if this looks like it could be private info
+            if '<private-repo>' in value or value.startswith('<private'):
+                return value  # Already masked
+            # For analyzed_user, we keep it but could mask if needed
+            return value
+    return value
+
+
 def find_latest_analysis_file() -> str:
     """Find the latest analysis JSON file."""
     json_files = glob.glob("pr_analysis_*.json")
@@ -93,9 +110,14 @@ def generate_repository_breakdown_chart(weekly_data: Dict[str, Any]) -> str:
     for week_data in weekly_data.values():
         for pr in week_data.get('pull_requests', []):
             repo = pr.get('repository', 'unknown')
+            # Skip private repositories in CI to protect privacy
+            if is_running_in_ci() and '<private-repo>' in repo:
+                continue
             repo_counts[repo] = repo_counts.get(repo, 0) + 1
     
     if not repo_counts:
+        if is_running_in_ci():
+            return "Repository breakdown hidden for privacy (running in CI)"
         return "No repository data available"
     
     # Sort repositories by PR count

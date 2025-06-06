@@ -20,6 +20,23 @@ import requests
 from typing import List, Dict, Any, Optional
 
 
+def is_running_in_ci() -> bool:
+    """Check if the script is running in a CI environment (GitHub Actions)."""
+    return os.getenv('GITHUB_ACTIONS', '').lower() == 'true' or os.getenv('CI', '').lower() == 'true'
+
+
+def is_private_repository(repo_data: Dict[str, Any]) -> bool:
+    """Check if a repository is private based on the repository data from GitHub API."""
+    return repo_data.get('private', False)
+
+
+def mask_private_repo_name(repo_name: str, is_private: bool) -> str:
+    """Mask private repository name if running in CI, otherwise return original name."""
+    if is_running_in_ci() and is_private:
+        return "<private-repo>"
+    return repo_name
+
+
 class GitHubPRAnalyzer:
     def __init__(self, token: str, owner: str, repo: str = None):
         """Initialize the analyzer with GitHub credentials and repository info."""
@@ -31,6 +48,8 @@ class GitHubPRAnalyzer:
             'Accept': 'application/vnd.github.v3+json'
         }
         self.base_url = 'https://api.github.com'
+        # Cache for repository privacy information
+        self.repo_privacy_cache: Dict[str, bool] = {}
     
     def get_user_repositories(self) -> List[Dict[str, Any]]:
         """Fetch all repositories for the user."""
@@ -55,6 +74,11 @@ class GitHubPRAnalyzer:
             if not page_repos:
                 break
             
+            # Cache privacy information for each repository
+            for repo in page_repos:
+                repo_name = repo['name']
+                self.repo_privacy_cache[repo_name] = is_private_repository(repo)
+            
             repos.extend(page_repos)
             
             # If we got fewer than per_page results, we've reached the end
@@ -64,6 +88,16 @@ class GitHubPRAnalyzer:
             page += 1
         
         return repos
+    
+    def get_repository_info(self, repo_name: str) -> Dict[str, Any]:
+        """Fetch repository information and cache privacy status."""
+        if repo_name not in self.repo_privacy_cache:
+            url = f'{self.base_url}/repos/{self.owner}/{repo_name}'
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            repo_data = response.json()
+            self.repo_privacy_cache[repo_name] = is_private_repository(repo_data)
+        return {'private': self.repo_privacy_cache[repo_name]}
     
     def get_pull_requests(self, since_date: datetime, repo_name: str = None) -> List[Dict[str, Any]]:
         """Fetch all pull requests from the repository since the given date."""
@@ -186,7 +220,11 @@ class GitHubPRAnalyzer:
         
         if self.repo:
             # Analyze single repository (original behavior)
-            print(f"Fetching pull requests from {self.owner}/{self.repo} since {three_months_ago.date()}...")
+            # Get privacy info for single repo
+            self.get_repository_info(self.repo)
+            is_private = self.repo_privacy_cache.get(self.repo, False)
+            masked_repo = mask_private_repo_name(self.repo, is_private)
+            print(f"Fetching pull requests from {self.owner}/{masked_repo} since {three_months_ago.date()}...")
             prs = self.get_pull_requests(three_months_ago, self.repo)
             all_prs.extend(prs)
         else:
@@ -197,13 +235,15 @@ class GitHubPRAnalyzer:
             
             for repo in repositories:
                 repo_name = repo['name']
-                print(f"Analyzing repository: {repo_name}")
+                is_private = self.repo_privacy_cache.get(repo_name, False)
+                masked_repo_name = mask_private_repo_name(repo_name, is_private)
+                print(f"Analyzing repository: {masked_repo_name}")
                 try:
                     prs = self.get_pull_requests(three_months_ago, repo_name)
                     all_prs.extend(prs)
-                    print(f"  Found {len(prs)} PRs in {repo_name}")
+                    print(f"  Found {len(prs)} PRs in {masked_repo_name}")
                 except Exception as e:
-                    print(f"  Warning: Could not fetch PRs from {repo_name}: {e}")
+                    print(f"  Warning: Could not fetch PRs from {masked_repo_name}: {e}")
                     continue
         
         print(f"Total pull requests found: {len(all_prs)}")
@@ -235,14 +275,16 @@ class GitHubPRAnalyzer:
             
             # Add repository information
             repo_name = pr.get('repository_name', self.repo or 'unknown')
-            weekly_data[week_key]['repositories'].add(repo_name)
+            is_private = self.repo_privacy_cache.get(repo_name, False)
+            masked_repo_name = mask_private_repo_name(repo_name, is_private)
+            weekly_data[week_key]['repositories'].add(masked_repo_name)
             
             # Store PR details
             weekly_data[week_key]['pr_details'].append({
                 'number': pr['number'],
                 'title': pr['title'],
                 'author': pr['user']['login'],
-                'repository': repo_name,
+                'repository': masked_repo_name,
                 'created_at': pr['created_at'],
                 'copilot_assisted': is_copilot_assisted,
                 'url': pr['html_url']
@@ -335,8 +377,12 @@ def main():
     else:
         if not repo:
             repo = 'rajbos'  # fallback
-        print(f"Analyzing repository: {owner}/{repo}")
+        # Get privacy info for single repo analysis
         analyzer = GitHubPRAnalyzer(github_token, owner, repo)
+        analyzer.get_repository_info(repo)
+        is_private = analyzer.repo_privacy_cache.get(repo, False)
+        masked_repo = mask_private_repo_name(repo, is_private)
+        print(f"Analyzing repository: {owner}/{masked_repo}")
     
     try:
         results = analyzer.analyze_pull_requests()
