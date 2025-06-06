@@ -73,15 +73,15 @@ def generate_trend_chart(weekly_data: Dict[str, Any]) -> str:
     
     # Total PRs line
     total_prs = [str(weekly_data[week]['total_prs']) for week in sorted_weeks]
-    chart_lines.append('    line "📈 Total Pull Requests" [' + ', '.join(total_prs) + ']')
+    chart_lines.append('    line "Total Pull Requests" [' + ', '.join(total_prs) + ']')
     
     # Copilot PRs line
     copilot_prs = [str(weekly_data[week]['copilot_assisted_prs']) for week in sorted_weeks]
-    chart_lines.append('    line "🤖 GitHub Copilot Assisted" [' + ', '.join(copilot_prs) + ']')
+    chart_lines.append('    line "GitHub Copilot Assisted" [' + ', '.join(copilot_prs) + ']')
     
     # Dependabot PRs line
     dependabot_prs = [str(weekly_data[week].get('dependabot_prs', 0)) for week in sorted_weeks]
-    chart_lines.append('    line "⚙️ Dependabot Automated" [' + ', '.join(dependabot_prs) + ']')
+    chart_lines.append('    line "Dependabot Automated" [' + ', '.join(dependabot_prs) + ']')
     
     chart_lines.append("```")
     
@@ -115,11 +115,11 @@ def generate_percentage_chart(weekly_data: Dict[str, Any]) -> str:
     
     # Copilot percentage line
     copilot_percentages = [str(weekly_data[week]['copilot_percentage']) for week in sorted_weeks]
-    chart_lines.append('    line "🤖 Copilot Adoption Rate" [' + ', '.join(copilot_percentages) + ']')
+    chart_lines.append('    line "Copilot Adoption Rate" [' + ', '.join(copilot_percentages) + ']')
     
     # Dependabot percentage line
     dependabot_percentages = [str(weekly_data[week].get('dependabot_percentage', 0)) for week in sorted_weeks]
-    chart_lines.append('    line "⚙️ Dependabot Automation Rate" [' + ', '.join(dependabot_percentages) + ']')
+    chart_lines.append('    line "Dependabot Automation Rate" [' + ', '.join(dependabot_percentages) + ']')
     
     chart_lines.append("```")
     
