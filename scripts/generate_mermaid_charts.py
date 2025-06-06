@@ -48,6 +48,13 @@ def parse_week_key(week_key: str) -> Tuple[int, int]:
     return int(year_str), int(week_str)
 
 
+def format_week_for_display(week_key: str) -> str:
+    """Convert week key from YYYY-WXX format to YY/XX for display."""
+    year_str, week_str = week_key.split('-W')
+    short_year = year_str[-2:]  # Get last 2 digits of year
+    return f"{short_year}/{week_str}"
+
+
 def generate_trend_chart(weekly_data: Dict[str, Any]) -> str:
     """Generate mermaid line chart showing PR trends over time."""
     if not weekly_data:
@@ -61,7 +68,7 @@ def generate_trend_chart(weekly_data: Dict[str, Any]) -> str:
     chart_lines.append("```mermaid")
     chart_lines.append("xychart-beta")
     chart_lines.append('    title "Pull Request Trends Over Time"')
-    chart_lines.append('    x-axis [' + ', '.join(f'"{week}"' for week in sorted_weeks) + ']')
+    chart_lines.append('    x-axis [' + ', '.join(f'"{format_week_for_display(week)}"' for week in sorted_weeks) + ']')
     chart_lines.append('    y-axis "Number of PRs" 0 --> ' + str(max(data['total_prs'] for data in weekly_data.values()) + 5))
     
     # Total PRs line
@@ -93,7 +100,7 @@ def generate_percentage_chart(weekly_data: Dict[str, Any]) -> str:
     chart_lines.append("```mermaid")
     chart_lines.append("xychart-beta")
     chart_lines.append('    title "GitHub Copilot & Dependabot Usage Percentage Over Time"')
-    chart_lines.append('    x-axis [' + ', '.join(f'"{week}"' for week in sorted_weeks) + ']')
+    chart_lines.append('    x-axis [' + ', '.join(f'"{format_week_for_display(week)}"' for week in sorted_weeks) + ']')
     chart_lines.append('    y-axis "Percentage (%)" 0 --> 100')
     
     # Copilot percentage line
