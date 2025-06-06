@@ -17,16 +17,23 @@ This repository includes a GitHub Actions workflow and Python scripts to analyze
 
 The script analyzes pull requests and provides:
 
-1. **Multi-Repository Analysis**: Analyzes PRs across all user repositories (not just current repo)
+1. **Multi-Repository Analysis**: Analyzes PRs across all user repositories and organization repositories where the user has been involved
+2. **Organization Support**: Automatically discovers and analyzes PRs from all organizations the user belongs to
 2. **Pull Request Retrieval**: Fetches all PRs from the past 3 months using GitHub's REST API
 3. **Collaborator Analysis**: Identifies all collaborators on PRs
 4. **Weekly Grouping**: Calculates PR counts for each week
 5. **Copilot Detection**: Determines which PRs were co-created with GitHub Copilot
 6. **Output Formats**: Results in JSON or CSV format
 
-#### Multi-Repository Support
+#### Multi-Repository and Organization Support
 
-By default, the script now analyzes **all repositories** for the authenticated user, providing a comprehensive view of development activity and Copilot usage across the entire GitHub profile.
+By default, the script now analyzes **all repositories** for the authenticated user and **all organization repositories** where the user has been involved, providing a comprehensive view of development activity and Copilot usage across the entire GitHub profile.
+
+**Organization Analysis:**
+- Automatically discovers all organizations the user belongs to
+- Fetches repositories from each organization
+- Filters PRs to only include those where the user was involved (as author, assignee, or reviewer)
+- Displays organization repositories with full path (e.g., `org-name/repo-name`)
 
 #### Copilot Detection Methods
 
@@ -125,7 +132,7 @@ Week,Total PRs,Copilot Assisted PRs,Copilot Percentage,Unique Collaborators,Coll
 ## Security
 
 - **Authentication**: Uses Personal Access Token (`secrets.GITHUB_PAT`) for comprehensive repository access
-- **Permissions**: Read access to all user repositories and pull requests
+- **Permissions**: Read access to all user repositories, organization repositories, and pull requests
 - **Privacy**: No sensitive data in outputs, only public repository information
 - **Retention**: 30-day artifact retention limit
 
@@ -133,13 +140,14 @@ Week,Total PRs,Copilot Assisted PRs,Copilot Percentage,Unique Collaborators,Coll
 
 ### Personal Access Token
 
-To analyze all repositories, you need to create a Personal Access Token:
+To analyze all repositories and organizations, you need to create a Personal Access Token:
 
 1. Go to GitHub Settings → Developer settings → Personal access tokens
 2. Create a new token with the following scopes:
    - `repo` (Full control of private repositories)
    - `public_repo` (Access public repositories)
    - `read:user` (Read user profile data)
+   - `read:org` (Read organization data)
 3. Add the token as `GITHUB_PAT` in your repository secrets
 
 ### Repository Secret
