@@ -1,4 +1,15 @@
-# List of GitHub organizations to skip during PR analysis
-# One organization name per line
+# List of GitHub organizations to filter during PR analysis
+# One entry per line, supports two formats:
+#
+# 1. Simple format - skip entire organization:
+#    org-name
+#
+# 2. Selective format - skip organization except for specific repositories:
+#    org-name:include:repo1,repo2,repo3
+#
+# Examples:
 LinkedInLearning
 githubpartners
+
+# Example of selective filtering (as requested in issue):
+mcp-research:include:mcp-security-scans

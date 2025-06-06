@@ -155,25 +155,55 @@ class GitHubPRAnalyzer:
         
         return orgs
     
-    def load_skipped_organizations(self) -> List[str]:
-        """Load the list of organizations to skip from configuration file."""
-        skipped_orgs = []
+    def load_skipped_organizations(self) -> Dict[str, Any]:
+        """
+        Load the organization filtering configuration from file.
+        
+        Returns a dictionary with:
+        - 'fully_skipped': List of org names to skip entirely
+        - 'partially_skipped': Dict with org names as keys and included repos as values
+        
+        Supports two formats:
+        1. Simple format: 'org-name' (skip entire org)
+        2. Selective format: 'org-name:include:repo1,repo2' (skip org except specified repos)
+        """
+        config = {
+            'fully_skipped': [],
+            'partially_skipped': {}
+        }
         config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'skipped_orgs.txt')
         
         try:
             if os.path.exists(config_file):
                 with open(config_file, 'r') as f:
                     for line in f:
-                        org_name = line.strip()
-                        if org_name and not org_name.startswith('#'):  # Skip empty lines and comments
-                            skipped_orgs.append(org_name)
-                print(f"Loaded {len(skipped_orgs)} organizations to skip from config")
+                        line = line.strip()
+                        if not line or line.startswith('#'):  # Skip empty lines and comments
+                            continue
+                        
+                        # Check for new selective format: org-name:include:repo1,repo2
+                        if ':include:' in line:
+                            parts = line.split(':include:', 1)
+                            if len(parts) == 2:
+                                org_name = parts[0].strip()
+                                repo_list = [repo.strip() for repo in parts[1].split(',') if repo.strip()]
+                                if org_name and repo_list:
+                                    config['partially_skipped'][org_name] = repo_list
+                                    print(f"  Org '{org_name}' will be partially filtered to include only: {repo_list}")
+                        else:
+                            # Traditional format: simple org name
+                            org_name = line
+                            if org_name:
+                                config['fully_skipped'].append(org_name)
+                
+                total_filtered = len(config['fully_skipped']) + len(config['partially_skipped'])
+                print(f"Loaded organization filters from config: {len(config['fully_skipped'])} fully skipped, {len(config['partially_skipped'])} partially filtered")
             else:
                 print("No skipped organizations config file found")
         except Exception as e:
             print(f"Warning: Could not load skipped organizations config: {e}")
         
-        return skipped_orgs
+        return config
     
     def get_organization_repositories(self, org_name: str) -> List[Dict[str, Any]]:
         """Fetch all repositories for an organization."""
@@ -428,21 +458,38 @@ class GitHubPRAnalyzer:
             print(f"Fetching organizations for user {self.owner}...")
             try:
                 organizations = self.get_user_organizations()
-                skipped_orgs = self.load_skipped_organizations()
+                org_config = self.load_skipped_organizations()
                 print(f"Found {len(organizations)} organizations")
                 
                 for org in organizations:
                     org_name = org['login']
-                    if org_name in skipped_orgs:
+                    
+                    # Check if org is fully skipped
+                    if org_name in org_config['fully_skipped']:
                         print(f"Skipping organization: {org_name} (configured to skip)")
                         continue
-                    print(f"Analyzing organization: {org_name}")
+                    
+                    # Check if org is partially filtered
+                    is_partially_filtered = org_name in org_config['partially_skipped']
+                    included_repos = org_config['partially_skipped'].get(org_name, []) if is_partially_filtered else []
+                    
+                    if is_partially_filtered:
+                        print(f"Analyzing organization: {org_name} (filtered to include only: {included_repos})")
+                    else:
+                        print(f"Analyzing organization: {org_name}")
+                    
                     try:
                         org_repos = self.get_organization_repositories(org_name)
                         print(f"  Found {len(org_repos)} repositories in {org_name}")
                         
                         for repo in org_repos:
                             repo_name = repo['name']
+                            
+                            # If org is partially filtered, only process included repos
+                            if is_partially_filtered and repo_name not in included_repos:
+                                print(f"  Skipping {org_name}/{repo_name} (not in included list)")
+                                continue
+                            
                             print(f"  Analyzing org repository: {org_name}/{repo_name}")
                             try:
                                 # Filter by user involvement in organization repositories
