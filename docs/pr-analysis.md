@@ -138,7 +138,9 @@ Week,Total PRs,Copilot Assisted PRs,Copilot Percentage,Dependabot PRs,Dependabot
 
 - **Authentication**: Uses Personal Access Token (`secrets.GITHUB_PAT`) for comprehensive repository access
 - **Permissions**: Read access to all user repositories and pull requests
-- **Privacy**: No sensitive data in outputs, only public repository information
+- **Privacy**: Private repository information is automatically masked in CI environments to protect sensitive data
+  - In GitHub Actions: Private repository names are replaced with `<private-repo>` in logs and outputs
+  - In local/Codespace environments: Full repository information is shown for debugging purposes
 - **Retention**: 30-day artifact retention limit
 
 ## Setup Requirements
