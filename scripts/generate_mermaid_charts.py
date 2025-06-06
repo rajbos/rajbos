@@ -83,7 +83,7 @@ def generate_percentage_chart(weekly_data: Dict[str, Any]) -> str:
     return '\n'.join(chart_lines)
 
 
-def generate_repository_breakdown_chart(weekly_data: Dict[str, Any]) -> str:
+def generate_repository_breakdown_chart(weekly_data: Dict[str, Any], repo_privacy: Dict[str, bool] = None) -> str:
     """Generate a bar chart showing repository activity breakdown."""
     if not weekly_data:
         return "No data available for repository breakdown"
@@ -100,6 +100,27 @@ def generate_repository_breakdown_chart(weekly_data: Dict[str, Any]) -> str:
     
     # Sort repositories by PR count
     sorted_repos = sorted(repo_counts.items(), key=lambda x: x[1], reverse=True)
+    
+    # Filter and anonymize private repositories
+    if repo_privacy:
+        filtered_repos = []
+        private_repo_count = 0
+        private_pr_total = 0
+        
+        for repo_name, pr_count in sorted_repos:
+            if repo_privacy.get(repo_name, False):  # If repository is private
+                private_repo_count += 1
+                private_pr_total += pr_count
+            else:
+                filtered_repos.append((repo_name, pr_count))
+        
+        # Add aggregated private repositories if any exist
+        if private_repo_count > 0:
+            private_label = f"Private Repositories ({private_repo_count})"
+            filtered_repos.append((private_label, private_pr_total))
+        
+        # Sort again after adding private aggregate
+        sorted_repos = sorted(filtered_repos, key=lambda x: x[1], reverse=True)
     
     # Take top 10 repositories
     top_repos = sorted_repos[:10]
@@ -179,7 +200,8 @@ def main():
         
         # Generate repository breakdown chart (only if analyzing all repos)
         if results.get('analyzed_repository') == 'all_repositories':
-            repo_chart = generate_repository_breakdown_chart(weekly_data)
+            repo_privacy = results.get('repository_privacy', {})
+            repo_chart = generate_repository_breakdown_chart(weekly_data, repo_privacy)
             write_to_step_summary("## 📚 Repository Activity Breakdown")
             write_to_step_summary(repo_chart)
         

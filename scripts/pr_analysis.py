@@ -183,12 +183,15 @@ class GitHubPRAnalyzer:
         three_months_ago = datetime.now(timezone.utc) - timedelta(days=90)
         
         all_prs = []
+        repo_privacy_map = {}  # Track repository privacy status
         
         if self.repo:
             # Analyze single repository (original behavior)
             print(f"Fetching pull requests from {self.owner}/{self.repo} since {three_months_ago.date()}...")
             prs = self.get_pull_requests(three_months_ago, self.repo)
             all_prs.extend(prs)
+            # For single repo analysis, we don't have privacy info from API, assume public for backward compatibility
+            repo_privacy_map[self.repo] = False
         else:
             # Analyze all user repositories (new behavior)
             print(f"Fetching all repositories for user {self.owner}...")
@@ -197,6 +200,7 @@ class GitHubPRAnalyzer:
             
             for repo in repositories:
                 repo_name = repo['name']
+                repo_privacy_map[repo_name] = repo.get('private', False)  # Capture privacy status
                 print(f"Analyzing repository: {repo_name}")
                 try:
                     prs = self.get_pull_requests(three_months_ago, repo_name)
@@ -257,6 +261,7 @@ class GitHubPRAnalyzer:
             'analyzed_repository': self.repo if self.repo else 'all_repositories',
             'total_prs': len(all_prs),
             'total_copilot_prs': sum(week['copilot_prs'] for week in weekly_data.values()),
+            'repository_privacy': repo_privacy_map,  # Add privacy information
             'weekly_analysis': {}
         }
         
