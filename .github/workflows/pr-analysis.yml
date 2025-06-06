@@ -41,10 +41,16 @@ jobs:
       
       - name: Run PR analysis
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
           OUTPUT_FORMAT: ${{ github.event.inputs.output_format || 'json' }}
+          ANALYZE_ALL_REPOS: 'true'
         run: |
           python scripts/pr_analysis.py
+      
+      - name: Generate Mermaid Charts
+        if: env.OUTPUT_FORMAT == 'json' || github.event.inputs.output_format != 'csv'
+        run: |
+          python scripts/generate_mermaid_charts.py
       
       - name: Upload analysis results
         uses: actions/upload-artifact@v4

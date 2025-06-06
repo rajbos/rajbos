@@ -21,7 +21,7 @@ from typing import List, Dict, Any, Optional
 
 
 class GitHubPRAnalyzer:
-    def __init__(self, token: str, owner: str, repo: str):
+    def __init__(self, token: str, owner: str, repo: str = None):
         """Initialize the analyzer with GitHub credentials and repository info."""
         self.token = token
         self.owner = owner
@@ -32,14 +32,52 @@ class GitHubPRAnalyzer:
         }
         self.base_url = 'https://api.github.com'
     
-    def get_pull_requests(self, since_date: datetime) -> List[Dict[str, Any]]:
+    def get_user_repositories(self) -> List[Dict[str, Any]]:
+        """Fetch all repositories for the user."""
+        repos = []
+        page = 1
+        per_page = 100
+        
+        while True:
+            url = f'{self.base_url}/users/{self.owner}/repos'
+            params = {
+                'type': 'all',
+                'sort': 'updated',
+                'direction': 'desc',
+                'page': page,
+                'per_page': per_page
+            }
+            
+            response = requests.get(url, headers=self.headers, params=params)
+            response.raise_for_status()
+            
+            page_repos = response.json()
+            if not page_repos:
+                break
+            
+            repos.extend(page_repos)
+            
+            # If we got fewer than per_page results, we've reached the end
+            if len(page_repos) < per_page:
+                break
+            
+            page += 1
+        
+        return repos
+    
+    def get_pull_requests(self, since_date: datetime, repo_name: str = None) -> List[Dict[str, Any]]:
         """Fetch all pull requests from the repository since the given date."""
         prs = []
         page = 1
         per_page = 100
         
+        # Use provided repo_name or fall back to self.repo
+        target_repo = repo_name or self.repo
+        if not target_repo:
+            raise ValueError("Repository name is required")
+        
         while True:
-            url = f'{self.base_url}/repos/{self.owner}/{self.repo}/pulls'
+            url = f'{self.base_url}/repos/{self.owner}/{target_repo}/pulls'
             params = {
                 'state': 'all',
                 'sort': 'updated',
@@ -55,10 +93,11 @@ class GitHubPRAnalyzer:
             if not page_prs:
                 break
             
-            # Filter PRs by date
+            # Filter PRs by date and add repository information
             for pr in page_prs:
                 created_at = datetime.fromisoformat(pr['created_at'].replace('Z', '+00:00'))
                 if created_at >= since_date:
+                    pr['repository_name'] = target_repo
                     prs.append(pr)
                 else:
                     # Since we're sorting by updated date, we might have older PRs
@@ -75,9 +114,13 @@ class GitHubPRAnalyzer:
         filtered_prs = [pr for pr in prs if datetime.fromisoformat(pr['created_at'].replace('Z', '+00:00')) >= since_date]
         return filtered_prs
     
-    def get_pr_commits(self, pr_number: int) -> List[Dict[str, Any]]:
+    def get_pr_commits(self, pr_number: int, repo_name: str = None) -> List[Dict[str, Any]]:
         """Get commits for a specific pull request."""
-        url = f'{self.base_url}/repos/{self.owner}/{self.repo}/pulls/{pr_number}/commits'
+        target_repo = repo_name or self.repo
+        if not target_repo:
+            raise ValueError("Repository name is required")
+            
+        url = f'{self.base_url}/repos/{self.owner}/{target_repo}/pulls/{pr_number}/commits'
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
         return response.json()
@@ -113,7 +156,8 @@ class GitHubPRAnalyzer:
         
         # Check commits for co-authored patterns (this would require additional API calls)
         try:
-            commits = self.get_pr_commits(pr['number'])
+            repo_name = pr.get('repository_name', self.repo)
+            commits = self.get_pr_commits(pr['number'], repo_name)
             for commit in commits:
                 commit_message = commit['commit']['message'].lower()
                 if any(keyword in commit_message for keyword in copilot_keywords):
@@ -133,24 +177,47 @@ class GitHubPRAnalyzer:
         return f"{year}-W{week:02d}"
     
     def analyze_pull_requests(self) -> Dict[str, Any]:
-        """Analyze pull requests from the last 3 months."""
+        """Analyze pull requests from the last 3 months across all user repositories."""
         # Calculate date 3 months ago (timezone-aware)
         from datetime import timezone
         three_months_ago = datetime.now(timezone.utc) - timedelta(days=90)
         
-        print(f"Fetching pull requests since {three_months_ago.date()}...")
-        prs = self.get_pull_requests(three_months_ago)
-        print(f"Found {len(prs)} pull requests in the last 3 months")
+        all_prs = []
+        
+        if self.repo:
+            # Analyze single repository (original behavior)
+            print(f"Fetching pull requests from {self.owner}/{self.repo} since {three_months_ago.date()}...")
+            prs = self.get_pull_requests(three_months_ago, self.repo)
+            all_prs.extend(prs)
+        else:
+            # Analyze all user repositories (new behavior)
+            print(f"Fetching all repositories for user {self.owner}...")
+            repositories = self.get_user_repositories()
+            print(f"Found {len(repositories)} repositories")
+            
+            for repo in repositories:
+                repo_name = repo['name']
+                print(f"Analyzing repository: {repo_name}")
+                try:
+                    prs = self.get_pull_requests(three_months_ago, repo_name)
+                    all_prs.extend(prs)
+                    print(f"  Found {len(prs)} PRs in {repo_name}")
+                except Exception as e:
+                    print(f"  Warning: Could not fetch PRs from {repo_name}: {e}")
+                    continue
+        
+        print(f"Total pull requests found: {len(all_prs)}")
         
         # Group PRs by week and analyze
         weekly_data = defaultdict(lambda: {
             'total_prs': 0,
             'copilot_prs': 0,
             'collaborators': set(),
+            'repositories': set(),
             'pr_details': []
         })
         
-        for pr in prs:
+        for pr in all_prs:
             created_at = datetime.fromisoformat(pr['created_at'].replace('Z', '+00:00'))
             week_key = self.get_week_key(created_at)
             
@@ -166,11 +233,16 @@ class GitHubPRAnalyzer:
                 for assignee in pr['assignees']:
                     weekly_data[week_key]['collaborators'].add(assignee['login'])
             
+            # Add repository information
+            repo_name = pr.get('repository_name', self.repo or 'unknown')
+            weekly_data[week_key]['repositories'].add(repo_name)
+            
             # Store PR details
             weekly_data[week_key]['pr_details'].append({
                 'number': pr['number'],
                 'title': pr['title'],
                 'author': pr['user']['login'],
+                'repository': repo_name,
                 'created_at': pr['created_at'],
                 'copilot_assisted': is_copilot_assisted,
                 'url': pr['html_url']
@@ -181,7 +253,9 @@ class GitHubPRAnalyzer:
             'analysis_date': datetime.now(timezone.utc).isoformat(),
             'period_start': three_months_ago.isoformat(),
             'period_end': datetime.now(timezone.utc).isoformat(),
-            'total_prs': len(prs),
+            'analyzed_user': self.owner,
+            'analyzed_repository': self.repo if self.repo else 'all_repositories',
+            'total_prs': len(all_prs),
             'total_copilot_prs': sum(week['copilot_prs'] for week in weekly_data.values()),
             'weekly_analysis': {}
         }
@@ -195,6 +269,7 @@ class GitHubPRAnalyzer:
                 'copilot_percentage': round(copilot_percentage, 2),
                 'unique_collaborators': len(data['collaborators']),
                 'collaborators': list(data['collaborators']),
+                'repositories': list(data['repositories']),
                 'pull_requests': data['pr_details']
             }
         
@@ -239,8 +314,9 @@ def main():
     # Get environment variables
     github_token = os.getenv('GITHUB_TOKEN')
     owner = os.getenv('GITHUB_REPOSITORY_OWNER', 'rajbos')
-    repo = os.getenv('GITHUB_REPOSITORY_NAME', 'rajbos')
+    repo = os.getenv('GITHUB_REPOSITORY_NAME')
     output_format = os.getenv('OUTPUT_FORMAT', 'json')
+    analyze_all = os.getenv('ANALYZE_ALL_REPOS', 'true').lower() == 'true'
     
     if not github_token:
         print("Error: GITHUB_TOKEN environment variable is required")
@@ -249,12 +325,20 @@ def main():
     # If running in GitHub Actions, extract owner/repo from GITHUB_REPOSITORY
     if 'GITHUB_REPOSITORY' in os.environ:
         full_repo = os.environ['GITHUB_REPOSITORY']
-        owner, repo = full_repo.split('/')
+        owner, current_repo = full_repo.split('/')
+        if not analyze_all:
+            repo = current_repo
     
-    print(f"Analyzing repository: {owner}/{repo}")
+    if analyze_all:
+        print(f"Analyzing all repositories for user: {owner}")
+        analyzer = GitHubPRAnalyzer(github_token, owner)
+    else:
+        if not repo:
+            repo = 'rajbos'  # fallback
+        print(f"Analyzing repository: {owner}/{repo}")
+        analyzer = GitHubPRAnalyzer(github_token, owner, repo)
     
     try:
-        analyzer = GitHubPRAnalyzer(github_token, owner, repo)
         results = analyzer.analyze_pull_requests()
         
         # Save results
