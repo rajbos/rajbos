@@ -41,7 +41,7 @@ jobs:
       
       - name: Run PR analysis
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           OUTPUT_FORMAT: ${{ github.event.inputs.output_format || 'json' }}
           ANALYZE_ALL_REPOS: 'true'
         run: |
