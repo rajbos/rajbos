@@ -1,0 +1,6 @@
+# List of GitHub organizations to skip during PR analysis
+# One organization name per line
+
+LinkedInLearning
+
+# Add more organizations here as needed

@@ -119,6 +119,26 @@ class GitHubPRAnalyzer:
         
         return orgs
     
+    def load_skipped_organizations(self) -> List[str]:
+        """Load the list of organizations to skip from configuration file."""
+        skipped_orgs = []
+        config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'skipped_orgs.txt')
+        
+        try:
+            if os.path.exists(config_file):
+                with open(config_file, 'r') as f:
+                    for line in f:
+                        org_name = line.strip()
+                        if org_name and not org_name.startswith('#'):  # Skip empty lines and comments
+                            skipped_orgs.append(org_name)
+                print(f"Loaded {len(skipped_orgs)} organizations to skip from config")
+            else:
+                print("No skipped organizations config file found")
+        except Exception as e:
+            print(f"Warning: Could not load skipped organizations config: {e}")
+        
+        return skipped_orgs
+    
     def get_organization_repositories(self, org_name: str) -> List[Dict[str, Any]]:
         """Fetch all repositories for an organization."""
         repos = []
@@ -372,10 +392,14 @@ class GitHubPRAnalyzer:
             print(f"Fetching organizations for user {self.owner}...")
             try:
                 organizations = self.get_user_organizations()
+                skipped_orgs = self.load_skipped_organizations()
                 print(f"Found {len(organizations)} organizations")
                 
                 for org in organizations:
                     org_name = org['login']
+                    if org_name in skipped_orgs:
+                        print(f"Skipping organization: {org_name} (configured to skip)")
+                        continue
                     print(f"Analyzing organization: {org_name}")
                     try:
                         org_repos = self.get_organization_repositories(org_name)
