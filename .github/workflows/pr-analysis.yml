@@ -14,7 +14,10 @@ name: PR Analysis with Copilot Detection
         options:
           - json
           - csv
-
+  push:
+    paths:
+      - .github/workflows/pr-analysis.yml
+      
 jobs:
   analyze-prs:
     name: Analyze Pull Requests and Copilot Collaboration
