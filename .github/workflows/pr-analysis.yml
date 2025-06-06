@@ -17,6 +17,7 @@ name: PR Analysis with Copilot Detection
   push:
     paths:
       - .github/workflows/pr-analysis.yml
+      - scripts/
       
 jobs:
   analyze-prs:
