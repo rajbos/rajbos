@@ -22,7 +22,8 @@ The script analyzes pull requests and provides:
 3. **Collaborator Analysis**: Identifies all collaborators on PRs
 4. **Weekly Grouping**: Calculates PR counts for each week
 5. **Copilot Detection**: Determines which PRs were co-created with GitHub Copilot
-6. **Output Formats**: Results in JSON or CSV format
+6. **Dependabot Detection**: Identifies PRs created by Dependabot for dependency updates
+7. **Output Formats**: Results in JSON or CSV format
 
 #### Multi-Repository Support
 
@@ -36,6 +37,13 @@ The script detects GitHub Copilot collaboration through:
 - **Keyword Analysis**: PR titles/descriptions mentioning "copilot", "co-pilot", "github copilot", "ai-assisted"
 - **Assignee Analysis**: PRs with Copilot as an assignee
 - **Commit Analysis**: Commit messages mentioning Copilot or containing co-authored-by patterns
+
+#### Dependabot Detection Methods
+
+The script detects Dependabot PRs through:
+
+- **Author Detection**: PRs created by dependabot or dependabot[bot] users
+- **Title Pattern Analysis**: PR titles with patterns like "bump", "update", "build(deps)", typical of dependency updates
 
 #### Usage
 
@@ -54,8 +62,8 @@ python scripts/pr_analysis.py
 
 This script reads the JSON analysis results and generates interactive mermaid charts:
 
-1. **PR Trends Chart**: Shows total PRs and Copilot-assisted PRs over time
-2. **Copilot Usage Percentage Chart**: Displays the percentage of Copilot usage trends
+1. **PR Trends Chart**: Shows total PRs, Copilot-assisted PRs, and Dependabot PRs over time
+2. **Copilot & Dependabot Usage Percentage Chart**: Displays the percentage trends for both Copilot and Dependabot usage
 3. **Repository Activity Breakdown**: Shows top repositories by PR activity (when analyzing all repos)
 
 The charts are automatically displayed in the GitHub Actions step summary for easy visualization.
@@ -91,11 +99,14 @@ The workflow:
   "analyzed_repository": "all_repositories",
   "total_prs": 15,
   "total_copilot_prs": 8,
+  "total_dependabot_prs": 4,
   "weekly_analysis": {
     "2024-W41": {
       "total_prs": 3,
       "copilot_assisted_prs": 1,
       "copilot_percentage": 33.33,
+      "dependabot_prs": 1,
+      "dependabot_percentage": 33.33,
       "unique_collaborators": 2,
       "collaborators": ["rajbos", "dependabot"],
       "repositories": ["repo1", "repo2"],
@@ -107,6 +118,7 @@ The workflow:
           "repository": "repo1",
           "created_at": "2024-10-08T10:00:00Z",
           "copilot_assisted": false,
+          "dependabot_pr": false,
           "url": "https://github.com/rajbos/repo1/pull/1"
         }
       ]
@@ -118,15 +130,17 @@ The workflow:
 ### CSV Output Structure
 
 ```csv
-Week,Total PRs,Copilot Assisted PRs,Copilot Percentage,Unique Collaborators,Collaborators
-2024-W41,3,1,33.33,2,"rajbos, dependabot"
+Week,Total PRs,Copilot Assisted PRs,Copilot Percentage,Dependabot PRs,Dependabot Percentage,Unique Collaborators,Collaborators
+2024-W41,3,1,33.33,1,33.33,2,"rajbos, dependabot"
 ```
 
 ## Security
 
 - **Authentication**: Uses Personal Access Token (`secrets.GITHUB_PAT`) for comprehensive repository access
 - **Permissions**: Read access to all user repositories and pull requests
-- **Privacy**: No sensitive data in outputs, only public repository information
+- **Privacy**: Private repository information is automatically masked in CI environments to protect sensitive data
+  - In GitHub Actions: Private repository names are replaced with `<private-repo>` in logs and outputs
+  - In local/Codespace environments: Full repository information is shown for debugging purposes
 - **Retention**: 30-day artifact retention limit
 
 ## Setup Requirements
@@ -153,8 +167,8 @@ Add your Personal Access Token as a repository secret:
 
 The workflow automatically generates charts in the step summary:
 
-- **📈 Pull Request Trends**: Line chart showing total PRs and Copilot-assisted PRs over time
-- **🤖 GitHub Copilot Usage Trends**: Percentage chart showing Copilot adoption patterns
+- **📈 Pull Request Trends**: Line chart showing total PRs, Copilot-assisted PRs, and Dependabot PRs over time
+- **🤖 GitHub Copilot & Dependabot Usage Trends**: Percentage chart showing both Copilot and Dependabot adoption patterns
 - **📚 Repository Activity Breakdown**: Bar chart of most active repositories
 
 ## Customization
@@ -162,7 +176,7 @@ The workflow automatically generates charts in the step summary:
 The script can be customized by modifying:
 
 - **Time Period**: Change the 90-day lookback period in `analyze_pull_requests()`
-- **Detection Keywords**: Add/modify Copilot detection keywords in `detect_copilot_collaboration()`
+- **Detection Keywords**: Add/modify Copilot detection keywords in `detect_copilot_collaboration()` or Dependabot patterns in `detect_dependabot_pr()`
 - **Output Format**: Extend JSON/CSV structures in `save_results()`
 - **Chart Types**: Modify mermaid chart generation in `generate_mermaid_charts.py`
 - **Schedule**: Modify workflow cron expression

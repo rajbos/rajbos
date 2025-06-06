@@ -14,6 +14,23 @@ from datetime import datetime
 from typing import Dict, Any, List, Tuple
 
 
+def is_running_in_ci() -> bool:
+    """Check if the script is running in a CI environment (GitHub Actions)."""
+    return os.getenv('GITHUB_ACTIONS', '').lower() == 'true' or os.getenv('CI', '').lower() == 'true'
+
+
+def mask_private_info_for_display(value: str) -> str:
+    """Mask sensitive information for display when running in CI."""
+    if is_running_in_ci():
+        if value and value not in ['all_repositories', 'N/A', 'unknown']:
+            # Check if this looks like it could be private info
+            if '<private-repo>' in value or value.startswith('<private'):
+                return value  # Already masked
+            # For analyzed_user, we keep it but could mask if needed
+            return value
+    return value
+
+
 def find_latest_analysis_file() -> str:
     """Find the latest analysis JSON file."""
     json_files = glob.glob("pr_analysis_*.json")
@@ -62,12 +79,16 @@ def generate_trend_chart(weekly_data: Dict[str, Any]) -> str:
     copilot_prs = [str(weekly_data[week]['copilot_assisted_prs']) for week in sorted_weeks]
     chart_lines.append('    line "Copilot-Assisted PRs" [' + ', '.join(copilot_prs) + ']')
     
+    # Dependabot PRs line
+    dependabot_prs = [str(weekly_data[week].get('dependabot_prs', 0)) for week in sorted_weeks]
+    chart_lines.append('    line "Dependabot PRs" [' + ', '.join(dependabot_prs) + ']')
+    
     chart_lines.append("```")
     return '\n'.join(chart_lines)
 
 
 def generate_percentage_chart(weekly_data: Dict[str, Any]) -> str:
-    """Generate mermaid line chart showing Copilot percentage trends."""
+    """Generate mermaid line chart showing Copilot and Dependabot percentage trends."""
     if not weekly_data:
         return "No data available for percentage chart"
     
@@ -78,13 +99,17 @@ def generate_percentage_chart(weekly_data: Dict[str, Any]) -> str:
     chart_lines = []
     chart_lines.append("```mermaid")
     chart_lines.append("xychart-beta")
-    chart_lines.append('    title "GitHub Copilot Usage Percentage Over Time"')
-    chart_lines.append('    x-axis [' + ', '.join(f'"{format_week_for_display(week)}"' for week in sorted_weeks) + ']')
+    chart_lines.append('    title "GitHub Copilot & Dependabot Usage Percentage Over Time"')
+    chart_lines.append('    x-axis [' + ', '.join(f'"{week}"' for week in sorted_weeks) + ']')
     chart_lines.append('    y-axis "Percentage (%)" 0 --> 100')
     
-    # Percentage line
-    percentages = [str(weekly_data[week]['copilot_percentage']) for week in sorted_weeks]
-    chart_lines.append('    line "Copilot Usage %" [' + ', '.join(percentages) + ']')
+    # Copilot percentage line
+    copilot_percentages = [str(weekly_data[week]['copilot_percentage']) for week in sorted_weeks]
+    chart_lines.append('    line "Copilot Usage %" [' + ', '.join(copilot_percentages) + ']')
+    
+    # Dependabot percentage line
+    dependabot_percentages = [str(weekly_data[week].get('dependabot_percentage', 0)) for week in sorted_weeks]
+    chart_lines.append('    line "Dependabot Usage %" [' + ', '.join(dependabot_percentages) + ']')
     
     chart_lines.append("```")
     return '\n'.join(chart_lines)
@@ -100,9 +125,14 @@ def generate_repository_breakdown_chart(weekly_data: Dict[str, Any]) -> str:
     for week_data in weekly_data.values():
         for pr in week_data.get('pull_requests', []):
             repo = pr.get('repository', 'unknown')
+            # Skip private repositories in CI to protect privacy
+            if is_running_in_ci() and '<private-repo>' in repo:
+                continue
             repo_counts[repo] = repo_counts.get(repo, 0) + 1
     
     if not repo_counts:
+        if is_running_in_ci():
+            return "Repository breakdown hidden for privacy (running in CI)"
         return "No repository data available"
     
     # Sort repositories by PR count
@@ -136,12 +166,16 @@ def generate_summary_stats(results: Dict[str, Any]) -> str:
     lines.append("")
     lines.append(f"- **Total PRs:** {results.get('total_prs', 0)}")
     lines.append(f"- **Copilot-Assisted PRs:** {results.get('total_copilot_prs', 0)}")
+    lines.append(f"- **Dependabot PRs:** {results.get('total_dependabot_prs', 0)}")
     
     if results.get('total_prs', 0) > 0:
-        overall_percentage = (results.get('total_copilot_prs', 0) / results.get('total_prs', 1)) * 100
-        lines.append(f"- **Overall Copilot Usage:** {overall_percentage:.1f}%")
+        overall_copilot_percentage = (results.get('total_copilot_prs', 0) / results.get('total_prs', 1)) * 100
+        overall_dependabot_percentage = (results.get('total_dependabot_prs', 0) / results.get('total_prs', 1)) * 100
+        lines.append(f"- **Overall Copilot Usage:** {overall_copilot_percentage:.1f}%")
+        lines.append(f"- **Overall Dependabot Usage:** {overall_dependabot_percentage:.1f}%")
     else:
         lines.append("- **Overall Copilot Usage:** 0%")
+        lines.append("- **Overall Dependabot Usage:** 0%")
     
     return '\n'.join(lines)
 
@@ -181,7 +215,7 @@ def main():
         
         # Generate percentage chart
         percentage_chart = generate_percentage_chart(weekly_data)
-        write_to_step_summary("## 🤖 GitHub Copilot Usage Trends")
+        write_to_step_summary("## 🤖 GitHub Copilot & Dependabot Usage Trends")
         write_to_step_summary(percentage_chart)
         
         # Generate repository breakdown chart (only if analyzing all repos)
