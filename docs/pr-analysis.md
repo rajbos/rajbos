@@ -107,6 +107,7 @@ The workflow:
   "total_prs": 15,
   "total_copilot_prs": 8,
   "total_dependabot_prs": 4,
+  "total_repositories": 42,
   "weekly_analysis": {
     "2024-W41": {
       "total_prs": 3,

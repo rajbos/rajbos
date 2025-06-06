@@ -337,6 +337,7 @@ class GitHubPRAnalyzer:
         three_months_ago = datetime.now(timezone.utc) - timedelta(days=90)
         
         all_prs = []
+        total_repositories = 0
         
         if self.repo:
             # Analyze single repository (original behavior)
@@ -347,11 +348,13 @@ class GitHubPRAnalyzer:
             print(f"Fetching pull requests from {self.owner}/{masked_repo} since {three_months_ago.date()}...")
             prs = self.get_pull_requests(three_months_ago, self.repo)
             all_prs.extend(prs)
+            total_repositories = 1
         else:
             # Analyze all user repositories (existing behavior)
             print(f"Fetching all repositories for user {self.owner}...")
             repositories = self.get_user_repositories()
-            print(f"Found {len(repositories)} user repositories")
+            total_repositories = len(repositories)
+            print(f"Found {total_repositories} repositories")
             
             for repo in repositories:
                 repo_name = repo['name']                
@@ -456,6 +459,7 @@ class GitHubPRAnalyzer:
             'total_prs': len(all_prs),
             'total_copilot_prs': sum(week['copilot_prs'] for week in weekly_data.values()),
             'total_dependabot_prs': sum(week['dependabot_prs'] for week in weekly_data.values()),
+            'total_repositories': total_repositories,
             'weekly_analysis': {}
         }
         
@@ -556,6 +560,7 @@ def main():
         
         # Print summary
         print("\n=== SUMMARY ===")
+        print(f"Total repositories analyzed: {results['total_repositories']}")
         print(f"Total PRs analyzed: {results['total_prs']}")
         print(f"Copilot-assisted PRs: {results['total_copilot_prs']}")
         print(f"Dependabot PRs: {results['total_dependabot_prs']}")
