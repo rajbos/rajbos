@@ -38,6 +38,16 @@ def mask_private_repo_name(repo_name: str, is_private: bool) -> str:
     return repo_name
 
 
+def should_show_analysis_message(is_private: bool) -> bool:
+    """Determine if we should show repository analysis messages.
+    
+    Returns False for private repositories when running in CI to protect privacy.
+    """
+    if is_running_in_ci() and is_private:
+        return False
+    return True
+
+
 class GitHubPRAnalyzer:
     def __init__(self, token: str, owner: str, repo: str = None):
         """Initialize the analyzer with GitHub credentials and repository info."""
@@ -416,13 +426,16 @@ class GitHubPRAnalyzer:
                 repo_name = repo['name']                
                 is_private = self.repo_privacy_cache.get(repo_name, False)
                 masked_repo_name = mask_private_repo_name(repo_name, is_private)
-                print(f"Analyzing repository: {masked_repo_name}")
+                if should_show_analysis_message(is_private):
+                    print(f"Analyzing repository: {masked_repo_name}")
                 try:
                     prs = self.get_pull_requests(three_months_ago, repo_name)
                     all_prs.extend(prs)
-                    print(f"  Found {len(prs)} PRs in {masked_repo_name}")
+                    if should_show_analysis_message(is_private):
+                        print(f"  Found {len(prs)} PRs in {masked_repo_name}")
                 except Exception as e:
-                    print(f"  Warning: Could not fetch PRs from {masked_repo_name}: {e}")
+                    if should_show_analysis_message(is_private):
+                        print(f"  Warning: Could not fetch PRs from {masked_repo_name}: {e}")
                     continue
             
             print(f"Fetching organizations for user {self.owner}...")
@@ -443,14 +456,18 @@ class GitHubPRAnalyzer:
                         
                         for repo in org_repos:
                             repo_name = repo['name']
-                            print(f"  Analyzing org repository: {org_name}/{repo_name}")
+                            is_private = is_private_repository(repo)
+                            if should_show_analysis_message(is_private):
+                                print(f"  Analyzing org repository: {org_name}/{repo_name}")
                             try:
                                 # Filter by user involvement in organization repositories
                                 prs = self.get_pull_requests(three_months_ago, repo_name, org_name, filter_by_user=True)
                                 all_prs.extend(prs)
-                                print(f"    Found {len(prs)} PRs involving user in {org_name}/{repo_name}")
+                                if should_show_analysis_message(is_private):
+                                    print(f"    Found {len(prs)} PRs involving user in {org_name}/{repo_name}")
                             except Exception as e:
-                                print(f"    Warning: Could not fetch PRs from {org_name}/{repo_name}: {e}")
+                                if should_show_analysis_message(is_private):
+                                    print(f"    Warning: Could not fetch PRs from {org_name}/{repo_name}: {e}")
                                 continue
                     except Exception as e:
                         print(f"  Warning: Could not fetch repositories from organization {org_name}: {e}")
@@ -609,7 +626,8 @@ def main():
         analyzer.get_repository_info(repo)
         is_private = analyzer.repo_privacy_cache.get(repo, False)
         masked_repo = mask_private_repo_name(repo, is_private)
-        print(f"Analyzing repository: {owner}/{masked_repo}")
+        if should_show_analysis_message(is_private):
+            print(f"Analyzing repository: {owner}/{masked_repo}")
     
     # Print cache information
     cache_info = analyzer.get_cache_info()
