@@ -155,6 +155,86 @@ def generate_repository_breakdown_chart(weekly_data: Dict[str, Any]) -> str:
     return '\n'.join(chart_lines)
 
 
+def generate_trend_data_table(weekly_data: Dict[str, Any]) -> str:
+    """Generate markdown table showing PR trends data."""
+    if not weekly_data:
+        return "No data available for trend table"
+    
+    # Sort weeks chronologically
+    sorted_weeks = sorted(weekly_data.keys(), key=parse_week_key)
+    
+    lines = []
+    lines.append("| Week | Total PRs | Copilot-Assisted PRs | Dependabot PRs |")
+    lines.append("|------|-----------|---------------------|----------------|")
+    
+    for week in sorted_weeks:
+        data = weekly_data[week]
+        total_prs = data['total_prs']
+        copilot_prs = data['copilot_assisted_prs']
+        dependabot_prs = data.get('dependabot_prs', 0)
+        lines.append(f"| {week} | {total_prs} | {copilot_prs} | {dependabot_prs} |")
+    
+    return '\n'.join(lines)
+
+
+def generate_percentage_data_table(weekly_data: Dict[str, Any]) -> str:
+    """Generate markdown table showing percentage trends data."""
+    if not weekly_data:
+        return "No data available for percentage table"
+    
+    # Sort weeks chronologically
+    sorted_weeks = sorted(weekly_data.keys(), key=parse_week_key)
+    
+    lines = []
+    lines.append("| Week | Total PRs | Copilot Usage % | Dependabot Usage % |")
+    lines.append("|------|-----------|-----------------|-------------------|")
+    
+    for week in sorted_weeks:
+        data = weekly_data[week]
+        total_prs = data['total_prs']
+        copilot_pct = data['copilot_percentage']
+        dependabot_pct = data.get('dependabot_percentage', 0)
+        lines.append(f"| {week} | {total_prs} | {copilot_pct}% | {dependabot_pct}% |")
+    
+    return '\n'.join(lines)
+
+
+def generate_repository_data_table(weekly_data: Dict[str, Any]) -> str:
+    """Generate markdown table showing repository activity data."""
+    if not weekly_data:
+        return "No data available for repository table"
+    
+    # Collect all repositories and their PR counts
+    repo_counts = {}
+    for week_data in weekly_data.values():
+        for pr in week_data.get('pull_requests', []):
+            repo = pr.get('repository', 'unknown')
+            # Skip private repositories in CI to protect privacy
+            if is_running_in_ci() and '<private-repo>' in repo:
+                continue
+            repo_counts[repo] = repo_counts.get(repo, 0) + 1
+    
+    if not repo_counts:
+        if is_running_in_ci():
+            return "Repository data hidden for privacy (running in CI)"
+        return "No repository data available"
+    
+    # Sort repositories by PR count
+    sorted_repos = sorted(repo_counts.items(), key=lambda x: x[1], reverse=True)
+    
+    # Take top 10 repositories
+    top_repos = sorted_repos[:10]
+    
+    lines = []
+    lines.append("| Repository | PR Count |")
+    lines.append("|------------|----------|")
+    
+    for repo, count in top_repos:
+        lines.append(f"| {repo} | {count} |")
+    
+    return '\n'.join(lines)
+
+
 def generate_summary_stats(results: Dict[str, Any]) -> str:
     """Generate summary statistics in markdown format."""
     lines = []
@@ -213,16 +293,32 @@ def main():
         write_to_step_summary("## 📈 Pull Request Trends")
         write_to_step_summary(trend_chart)
         
+        # Generate trend data table
+        trend_table = generate_trend_data_table(weekly_data)
+        write_to_step_summary("### 📊 Pull Request Trends Data")
+        write_to_step_summary(trend_table)
+        
         # Generate percentage chart
         percentage_chart = generate_percentage_chart(weekly_data)
         write_to_step_summary("## 🤖 GitHub Copilot & Dependabot Usage Trends")
         write_to_step_summary(percentage_chart)
         
+        # Generate percentage data table
+        percentage_table = generate_percentage_data_table(weekly_data)
+        write_to_step_summary("### 📊 Usage Percentage Data")
+        write_to_step_summary(percentage_table)
+        
         # Generate repository breakdown chart (only if analyzing all repos)
-        if results.get('analyzed_repository') == 'all_repositories':
+        analyzed_repo = results.get('analyzed_repository', '')
+        if 'all_repositories' in analyzed_repo:
             repo_chart = generate_repository_breakdown_chart(weekly_data)
             write_to_step_summary("## 📚 Repository Activity Breakdown")
             write_to_step_summary(repo_chart)
+            
+            # Generate repository data table
+            repo_table = generate_repository_data_table(weekly_data)
+            write_to_step_summary("### 📊 Repository Activity Data")
+            write_to_step_summary(repo_table)
         
         print("Mermaid charts generated successfully!")
         
