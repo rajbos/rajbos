@@ -26,6 +26,9 @@ share/python-wheels/
 pr_analysis_*.json
 pr_analysis_*.csv
 
+# HTTP cache directory
+.http_cache/
+
 # Virtual environments
 venv/
 env/
