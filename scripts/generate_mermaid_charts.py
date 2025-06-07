@@ -222,7 +222,7 @@ def generate_percentage_data_table(weekly_data: Dict[str, Any]) -> str:
     return '\n'.join(lines)
 
 
-def generate_repository_data_table(weekly_data: Dict[str, Any]) -> str:
+def generate_repository_data_table(weekly_data: Dict[str, Any], analyzed_user: str = "unknown") -> str:
     """Generate markdown table showing repository activity data."""
     if not weekly_data:
         return "No data available for repository table"
@@ -249,11 +249,20 @@ def generate_repository_data_table(weekly_data: Dict[str, Any]) -> str:
     top_repos = sorted_repos[:10]
     
     lines = []
-    lines.append("| Repository | PR Count |")
-    lines.append("|------------|----------|")
+    lines.append("| Owner | Repository | PR Count |")
+    lines.append("|-------|------------|----------|")
     
     for repo, count in top_repos:
-        lines.append(f"| {repo} | {count} |")
+        # Parse repository name to extract owner and repo
+        if '/' in repo:
+            # Format: "owner/repo"
+            owner, repo_name = repo.split('/', 1)
+        else:
+            # Format: "repo" (user's own repository)
+            owner = analyzed_user
+            repo_name = repo
+        
+        lines.append(f"| {owner} | {repo_name} | {count} |")
     
     return '\n'.join(lines)
 
@@ -358,7 +367,8 @@ def main():
             write_to_step_summary(repo_chart)
             
             # Generate repository data table
-            repo_table = generate_repository_data_table(weekly_data)
+            analyzed_user = results.get('analyzed_user', 'unknown')
+            repo_table = generate_repository_data_table(weekly_data, analyzed_user)
             write_to_step_summary("<details>")
             write_to_step_summary("<summary>📊 Repository Activity Data</summary>")
             write_to_step_summary("")
