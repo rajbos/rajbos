@@ -70,7 +70,6 @@ def generate_trend_chart(weekly_data: Dict[str, Any]) -> str:
     chart_lines.append('    title "Pull Request Trends Over Time"')
     chart_lines.append('    x-axis [' + ', '.join(f'"{format_week_for_display(week)}"' for week in sorted_weeks) + ']')
     chart_lines.append('    y-axis "Number of PRs" 0 --> ' + str(max(data['total_prs'] for data in weekly_data.values()) + 5))
-    chart_lines.append('    legend Total PRs, GitHub Copilot Assisted, Dependabot Automated')
     
     # Total PRs line
     total_prs = [str(weekly_data[week]['total_prs']) for week in sorted_weeks]
@@ -113,7 +112,6 @@ def generate_percentage_chart(weekly_data: Dict[str, Any]) -> str:
     chart_lines.append('    title "GitHub Copilot & Dependabot Usage Percentage Over Time"')
     chart_lines.append('    x-axis [' + ', '.join(f'"{format_week_for_display(week)}"' for week in sorted_weeks) + ']')
     chart_lines.append('    y-axis "Percentage (%)" 0 --> 100')
-    chart_lines.append('    legend Copilot Adoption Rate, Dependabot Automation Rate')
     
     # Copilot percentage line
     copilot_percentages = [str(weekly_data[week]['copilot_percentage']) for week in sorted_weeks]
@@ -168,7 +166,6 @@ def generate_repository_breakdown_chart(weekly_data: Dict[str, Any]) -> str:
     chart_lines.append('    title "Top Repositories by PR Count (Last 3 Months)"')
     chart_lines.append('    x-axis [' + ', '.join(f'"{repo}"' for repo, _ in top_repos) + ']')
     chart_lines.append('    y-axis "Number of PRs" 0 --> ' + str(max(count for _, count in top_repos) + 5))
-    chart_lines.append('    legend Total PRs')
     
     counts = [str(count) for _, count in top_repos]
     chart_lines.append('    bar [' + ', '.join(counts) + ']')
