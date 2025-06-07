@@ -50,20 +50,12 @@ jobs:
       
       - name: Cache HTTP requests
         uses: actions/cache@v4
-        if: github.event.inputs.clean_cache != 'true'
         with:
           path: .http_cache
           key: http-cache-${{ hashFiles('requirements.txt') }}-${{ github.run_number }}
           restore-keys: |
             http-cache-${{ hashFiles('requirements.txt') }}-
             http-cache-
-      
-      - name: Setup fresh cache
-        if: github.event.inputs.clean_cache == 'true'
-        uses: actions/cache@v4
-        with:
-          path: .http_cache
-          key: http-cache-${{ hashFiles('requirements.txt') }}-${{ github.run_number }}
       
       - name: Clean cache directory
         if: github.event.inputs.clean_cache == 'true'
