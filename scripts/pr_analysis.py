@@ -14,7 +14,7 @@ import os
 import sys
 import json
 import csv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 import requests
 import requests_cache
@@ -106,6 +106,36 @@ class GitHubPRAnalyzer:
                 cache_info['error'] = str(e)
         
         return cache_info
+    
+    def get_rate_limit_info(self) -> Dict[str, Any]:
+        """Get current rate limit information from GitHub API (non-cached call)."""
+        # Use a non-cached session for rate limit info
+        url = f'{self.base_url}/rate_limit'
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        
+        rate_limit_data = response.json()
+        
+        # Calculate time until reset
+        reset_timestamp = rate_limit_data['rate']['reset']
+        reset_datetime = datetime.fromtimestamp(reset_timestamp, tz=timezone.utc)
+        current_time = datetime.now(timezone.utc)
+        time_until_reset = reset_datetime - current_time
+        
+        # Convert to minutes and seconds
+        total_seconds = int(time_until_reset.total_seconds())
+        minutes = total_seconds // 60
+        seconds = total_seconds % 60
+        
+        return {
+            'remaining': rate_limit_data['rate']['remaining'],
+            'limit': rate_limit_data['rate']['limit'],
+            'reset_timestamp': reset_timestamp,
+            'reset_datetime': reset_datetime.isoformat(),
+            'time_until_reset_minutes': minutes,
+            'time_until_reset_seconds': seconds,
+            'time_until_reset_total_seconds': total_seconds
+        }
     
     def get_user_repositories(self) -> List[Dict[str, Any]]:
         """Fetch all repositories for the user."""
@@ -761,6 +791,19 @@ class GitHubPRAnalyzer:
         return filename
 
 
+def print_rate_limit_info(analyzer):
+    """Print current rate limit information."""
+    try:
+        rate_limit_info = analyzer.get_rate_limit_info()
+        print(f"Rate limit remaining: [{rate_limit_info['remaining']}]/[{rate_limit_info['limit']}]")
+        if rate_limit_info['time_until_reset_total_seconds'] > 0:
+            print(f"Rate limit resets in: [{rate_limit_info['time_until_reset_minutes']}] minutes and [{rate_limit_info['time_until_reset_seconds']}] seconds")
+        else:
+            print("Rate limit has already reset")
+    except Exception as e:
+        print(f"Warning: Could not fetch rate limit info: [{e}]")
+
+
 def main():
     """Main function to run the PR analysis."""
     # Get environment variables
@@ -803,6 +846,9 @@ def main():
         print(f"Cache location: [{cache_info['cache_location']}]")
         print(f"Cached responses: [{cache_info.get('cache_size', 'unknown')}]")
     
+    # Print rate limit information
+    print_rate_limit_info(analyzer)
+    
     if clean_cache:
         print("Cache cleaning mode enabled - starting with fresh cache")
     
@@ -824,6 +870,10 @@ def main():
         print("\n=== WEEKLY BREAKDOWN ===")
         for week, data in sorted(results['weekly_analysis'].items()):
             print(f"[{week}]: [{data['total_prs']}] PRs, [{data['copilot_assisted_prs']}] Copilot-assisted: [{data['copilot_percentage']}%])")
+        
+        # Print final rate limit information
+        print("\n=== FINAL RATE LIMIT STATUS ===")
+        print_rate_limit_info(analyzer)
         
     except Exception as e:
         print(f"Error: [{e}]")
