@@ -48,6 +48,16 @@ def should_show_analysis_message(is_private: bool) -> bool:
     return True
 
 
+def should_skip_repository(repo_data: Dict[str, Any]) -> bool:
+    """Check if a repository should be skipped from analysis.
+    
+    Returns True if the repository is archived or disabled (deleted).
+    """
+    is_archived = repo_data.get('archived', False) or False
+    is_disabled = repo_data.get('disabled', False) or False
+    return is_archived or is_disabled
+
+
 class GitHubPRAnalyzer:
     def __init__(self, token: str, owner: str, repo: str = None):
         """Initialize the analyzer with GitHub credentials and repository info."""
@@ -450,11 +460,30 @@ class GitHubPRAnalyzer:
             # Analyze all user repositories (existing behavior)
             print(f"Fetching all repositories for user [{self.owner}]...")
             repositories = self.get_user_repositories()
-            total_repositories = len(repositories)
-            print(f"Found [{total_repositories}] repositories")
+            total_repositories_found = len(repositories)
+            print(f"Found [{total_repositories_found}] repositories")
+            
+            repositories_analyzed = 0
+            repositories_skipped = 0
             
             for repo in repositories:
-                repo_name = repo['name']                
+                repo_name = repo['name']
+                
+                # Skip archived or disabled repositories
+                if should_skip_repository(repo):
+                    is_archived = repo.get('archived', False)
+                    is_disabled = repo.get('disabled', False)
+                    skip_reason = []
+                    if is_archived:
+                        skip_reason.append('archived')
+                    if is_disabled:
+                        skip_reason.append('disabled')
+                    print(f"Skipping repository: [{repo_name}] ({', '.join(skip_reason)})")
+                    repositories_skipped += 1
+                    continue
+                
+                repositories_analyzed += 1
+                
                 is_private = self.repo_privacy_cache.get(repo_name, False)
                 masked_repo_name = mask_private_repo_name(repo_name, is_private)
                 print(f"Repository privacy: [{is_private}] for repository: [{masked_repo_name}]")
@@ -469,6 +498,9 @@ class GitHubPRAnalyzer:
                     if should_show_analysis_message(is_private):
                         print(f"  Warning: Could not fetch PRs from [{masked_repo_name}]: [{e}]")
                     continue
+            
+            total_repositories = repositories_analyzed
+            print(f"User repositories: [{repositories_analyzed}] analyzed, [{repositories_skipped}] skipped")
             
             print(f"Fetching organizations for user [{self.owner}]...")
             try:
@@ -499,6 +531,18 @@ class GitHubPRAnalyzer:
                         
                         for repo in org_repos:
                             repo_name = repo['name']
+                            
+                            # Skip archived or disabled repositories
+                            if should_skip_repository(repo):
+                                is_archived = repo.get('archived', False)
+                                is_disabled = repo.get('disabled', False)
+                                skip_reason = []
+                                if is_archived:
+                                    skip_reason.append('archived')
+                                if is_disabled:
+                                    skip_reason.append('disabled')
+                                print(f"  Skipping [{org_name}]/[{repo_name}] ({', '.join(skip_reason)})")
+                                continue
                             
                             # If org is partially filtered, only process included repos
                             if is_partially_filtered and repo_name not in included_repos:
