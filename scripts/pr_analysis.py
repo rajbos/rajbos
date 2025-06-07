@@ -14,7 +14,7 @@ import os
 import sys
 import json
 import csv
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from collections import defaultdict
 import requests
 import requests_cache
