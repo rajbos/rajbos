@@ -26,6 +26,17 @@ The script analyzes pull requests and provides:
 5. **Copilot Detection**: Determines which PRs were co-created with GitHub Copilot
 6. **Dependabot Detection**: Identifies PRs created by Dependabot for dependency updates
 7. **Output Formats**: Results in JSON or CSV format
+8. **Repository Filtering**: Automatically skips archived and disabled repositories to focus analysis on active repositories
+
+#### Repository Filtering
+
+The script automatically filters out repositories that should not be analyzed:
+
+- **Archived Repositories**: Repositories that are archived (read-only) are skipped
+- **Disabled Repositories**: Repositories that are disabled or deleted are skipped
+- **Tracking**: Reports the number of repositories analyzed vs skipped for transparency
+
+This filtering reduces unnecessary API calls and focuses the analysis on active, maintainable repositories.
 
 #### Multi-Repository and Organization Support
 
