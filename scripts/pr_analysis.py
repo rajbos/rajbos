@@ -543,7 +543,10 @@ class GitHubPRAnalyzer:
         }
         
         for week_key, data in weekly_data.items():
-            copilot_percentage = (data['copilot_prs'] / data['total_prs'] * 100) if data['total_prs'] > 0 else 0
+            # Calculate copilot percentage excluding dependabot PRs from denominator
+            total_non_dependabot_prs = data['total_prs'] - data['dependabot_prs']
+            copilot_percentage = (data['copilot_prs'] / total_non_dependabot_prs * 100) if total_non_dependabot_prs > 0 else 0
+            # Keep dependabot percentage calculated against total PRs
             dependabot_percentage = (data['dependabot_prs'] / data['total_prs'] * 100) if data['total_prs'] > 0 else 0
             
             results['weekly_analysis'][week_key] = {
@@ -652,10 +655,18 @@ def main():
         print(f"Copilot-assisted PRs: {results['total_copilot_prs']}")
         print(f"Dependabot PRs: {results['total_dependabot_prs']}")
         if results['total_prs'] > 0:
-            overall_copilot_percentage = results['total_copilot_prs'] / results['total_prs'] * 100
+            # Calculate copilot percentage excluding dependabot PRs from denominator
+            total_non_dependabot_prs = results['total_prs'] - results['total_dependabot_prs']
+            if total_non_dependabot_prs > 0:
+                overall_copilot_percentage = results['total_copilot_prs'] / total_non_dependabot_prs * 100
+                print(f"Total PRs - Dependabot PRs: {results['total_prs']} - {results['total_dependabot_prs']} = {total_non_dependabot_prs}")
+                print(f"Overall Copilot Usage on PRs (excluding Dependabot): {overall_copilot_percentage:.2f}%")
+            else:
+                print(f"Total PRs - Dependabot PRs: {results['total_prs']} - {results['total_dependabot_prs']} = 0")
+                print(f"Overall Copilot Usage on PRs (excluding Dependabot): 0% (no non-Dependabot PRs)")
+            # Keep dependabot percentage calculated against total PRs
             overall_dependabot_percentage = results['total_dependabot_prs'] / results['total_prs'] * 100
-            print(f"Overall Copilot percentage: {overall_copilot_percentage:.2f}%")
-            print(f"Overall Dependabot percentage: {overall_dependabot_percentage:.2f}%")
+            print(f"Dependabot Usage compared to total PRs: {overall_dependabot_percentage:.2f}%")
         
         print("\n=== WEEKLY BREAKDOWN ===")
         for week, data in sorted(results['weekly_analysis'].items()):
