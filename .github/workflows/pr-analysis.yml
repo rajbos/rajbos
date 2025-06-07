@@ -14,6 +14,11 @@ name: PR Analysis with Copilot Detection
         options:
           - json
           - csv
+      clean_cache:
+        description: 'Clean the cache and start fresh'
+        required: false
+        default: false
+        type: boolean
   push:
     paths:
       - .github/workflows/pr-analysis.yml
@@ -52,11 +57,19 @@ jobs:
             http-cache-${{ hashFiles('requirements.txt') }}-
             http-cache-
       
+      - name: Clean cache directory
+        if: github.event.inputs.clean_cache == 'true'
+        run: |
+          echo "Cache cleaning option selected. Removing existing cache directory..."
+          rm -rf .http_cache
+          echo "Cache directory cleaned. A fresh cache will be created during analysis."
+      
       - name: Run PR analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           OUTPUT_FORMAT: ${{ github.event.inputs.output_format || 'json' }}
           ANALYZE_ALL_REPOS: 'true'
+          CLEAN_CACHE: ${{ github.event.inputs.clean_cache || 'false' }}
         run: |
           python scripts/pr_analysis.py
       

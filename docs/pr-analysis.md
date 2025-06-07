@@ -136,9 +136,10 @@ The charts are automatically displayed in the GitHub Actions step summary for ea
 The workflow:
 
 - **Schedule**: Runs every Monday at 9:00 AM UTC
-- **Manual Trigger**: Can be triggered manually with optional output format selection
+- **Manual Trigger**: Can be triggered manually with optional output format selection and cache cleaning option
 - **Authentication**: Uses Personal Access Token (`secrets.GITHUB_PAT`) for full access
 - **HTTP Cache**: Downloads and uploads cache artifacts to persist between runs
+- **Cache Management**: Option to clean cache and start fresh when manually triggered
 - **Artifacts**: Uploads analysis results with 30-day retention
 - **Visualization**: Generates and displays mermaid charts in step summary
 
@@ -147,6 +148,7 @@ The workflow:
 - Automatic Python environment setup
 - Dependency installation from `requirements.txt`
 - HTTP cache download (if available from previous runs)
+- Optional cache cleaning for fresh analysis (manual trigger only)
 - Multi-repository PR analysis
 - HTTP cache upload for future runs
 - Mermaid chart generation and display
