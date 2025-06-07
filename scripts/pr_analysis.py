@@ -386,34 +386,90 @@ class GitHubPRAnalyzer:
         response.raise_for_status()
         return response.json()
     
-    def detect_copilot_collaboration(self, pr: Dict[str, Any]) -> bool:
+    def get_pr_reviews(self, pr_number: int, repo_name: str = None, repo_owner: str = None) -> List[Dict[str, Any]]:
+        """Get reviews for a specific pull request."""
+        target_repo = repo_name or self.repo
+        target_owner = repo_owner or self.owner
+        if not target_repo:
+            raise ValueError("Repository name is required")
+            
+        url = f'{self.base_url}/repos/{target_owner}/{target_repo}/pulls/{pr_number}/reviews'
+        response = self.session.get(url, headers=self.headers)
+        response.raise_for_status()
+        return response.json()
+    
+    def detect_copilot_collaboration(self, pr: Dict[str, Any]) -> str:
         """
-        Detect if a PR was created with GitHub Copilot collaboration.
+        Detect if a PR was created with GitHub Copilot collaboration and categorize the type.
         
         This function looks for various indicators of Copilot usage:
-        1. PR title or body mentioning Copilot
-        2. Co-authored-by tags in commits
-        3. User being the Copilot bot
-        4. Specific patterns in commit messages
+        1. Copilot as reviewer (requested or actual) -> 'review' assistance
+        2. Copilot as assignee -> 'agent' assistance  
+        3. PR title or body mentioning Copilot (with context analysis)
+        4. Co-authored-by tags in commits -> 'agent' assistance
+        5. User being the Copilot bot -> 'agent' assistance
+        6. Specific patterns in commit messages (with context analysis)
+        
+        Detection priority (first match wins):
+        - Copilot bot as author -> 'agent'
+        - Copilot as requested reviewer -> 'review'
+        - Copilot as actual reviewer -> 'review'
+        - Copilot as assignee -> 'agent'
+        - Context-based analysis of mentions and commits
+        
+        Returns:
+            str: 'none' if no Copilot detected, 'review' for coding review assistance, 
+                 'agent' for coding agent assistance
         """
         # Check if the author is Copilot bot
         if pr['user']['login'] == 'Copilot':
-            return True
+            return 'agent'  # Copilot bot authoring is considered agent work
+        
+        # Check for Copilot as reviewer (indicates review assistance)
+        # First check requested_reviewers in PR data
+        if pr.get('requested_reviewers'):
+            for reviewer in pr['requested_reviewers']:
+                if reviewer['login'] == 'Copilot':
+                    return 'review'  # Copilot requested as reviewer indicates review assistance
+        
+        # Check actual reviews for Copilot (requires additional API call)
+        try:
+            repo_name = pr.get('repository_name', self.repo)
+            repo_owner = pr.get('repository_owner', self.owner)
+            reviews = self.get_pr_reviews(pr['number'], repo_name, repo_owner)
+            for review in reviews:
+                if review['user']['login'] == 'Copilot':
+                    return 'review'  # Copilot provided a review indicates review assistance
+        except Exception as e:
+            print(f"Warning: Could not fetch reviews for PR #[{pr['number']}]: [{e}]")
+        
+        # Check assignees for Copilot (indicates agent assistance)
+        if pr.get('assignees'):
+            for assignee in pr['assignees']:
+                if assignee['login'] == 'Copilot':
+                    return 'agent'  # Copilot as assignee indicates agent assistance
         
         # Check PR title and body for Copilot mentions
         title = pr['title'].lower()
         body = (pr['body'] or '').lower()
         
         copilot_keywords = ['copilot', 'co-pilot', 'github copilot', 'ai-assisted', 'ai assisted']
-        for keyword in copilot_keywords:
-            if keyword in title or keyword in body:
-                return True
         
-        # Check assignees for Copilot
-        if pr.get('assignees'):
-            for assignee in pr['assignees']:
-                if assignee['login'] == 'Copilot':
-                    return True
+        # Check for review-specific patterns in title/body
+        review_patterns = ['review', 'feedback', 'suggestion', 'comment', 'approve']
+        agent_patterns = ['generate', 'create', 'implement', 'code', 'develop', 'write']
+        
+        copilot_mentioned = any(keyword in title or keyword in body for keyword in copilot_keywords)
+        
+        if copilot_mentioned:
+            # Determine if it's review or agent based on context
+            if any(pattern in title or pattern in body for pattern in review_patterns):
+                return 'review'
+            elif any(pattern in title or pattern in body for pattern in agent_patterns):
+                return 'agent'
+            else:
+                # Default to agent if Copilot mentioned but no specific context
+                return 'agent'
         
         # Check commits for co-authored patterns (this would require additional API calls)
         try:
@@ -422,16 +478,21 @@ class GitHubPRAnalyzer:
             commits = self.get_pr_commits(pr['number'], repo_name, repo_owner)
             for commit in commits:
                 commit_message = commit['commit']['message'].lower()
-                if any(keyword in commit_message for keyword in copilot_keywords):
-                    return True
                 
                 # Check for co-authored-by patterns
                 if 'co-authored-by:' in commit_message and 'copilot' in commit_message:
-                    return True
+                    return 'agent'  # Co-authored commits indicate code generation
+                
+                if any(keyword in commit_message for keyword in copilot_keywords):
+                    # Check context in commit message
+                    if any(pattern in commit_message for pattern in review_patterns):
+                        return 'review'
+                    else:
+                        return 'agent'  # Default to agent for commit mentions
         except Exception as e:
             print(f"Warning: Could not fetch commits for PR #[{pr['number']}]: [{e}]")
         
-        return False
+        return 'none'
     
     def detect_dependabot_pr(self, pr: Dict[str, Any]) -> bool:
         """
@@ -604,6 +665,8 @@ class GitHubPRAnalyzer:
         weekly_data = defaultdict(lambda: {
             'total_prs': 0,
             'copilot_prs': 0,
+            'copilot_review_prs': 0,
+            'copilot_agent_prs': 0,
             'collaborators': set(),
             'repositories': set(),
             'pr_details': []
@@ -616,11 +679,16 @@ class GitHubPRAnalyzer:
             created_at = datetime.fromisoformat(pr['created_at'].replace('Z', '+00:00'))
             week_key = self.get_week_key(created_at)
             
-            is_copilot_assisted = self.detect_copilot_collaboration(pr)
+            copilot_type = self.detect_copilot_collaboration(pr)
+            is_copilot_assisted = copilot_type != 'none'
             
             weekly_data[week_key]['total_prs'] += 1
             if is_copilot_assisted:
                 weekly_data[week_key]['copilot_prs'] += 1
+                if copilot_type == 'review':
+                    weekly_data[week_key]['copilot_review_prs'] += 1
+                elif copilot_type == 'agent':
+                    weekly_data[week_key]['copilot_agent_prs'] += 1
             
             # Add collaborators
             weekly_data[week_key]['collaborators'].add(pr['user']['login'])
@@ -644,6 +712,7 @@ class GitHubPRAnalyzer:
                 'repository': masked_repo_name,
                 'created_at': pr['created_at'],
                 'copilot_assisted': is_copilot_assisted,
+                'copilot_type': copilot_type,
                 'url': pr['html_url']
             })
         
@@ -656,6 +725,8 @@ class GitHubPRAnalyzer:
             'analyzed_repository': self.repo if self.repo else 'all_repositories_and_organizations',
             'total_prs': sum(week['total_prs'] for week in weekly_data.values()),
             'total_copilot_prs': sum(week['copilot_prs'] for week in weekly_data.values()),
+            'total_copilot_review_prs': sum(week['copilot_review_prs'] for week in weekly_data.values()),
+            'total_copilot_agent_prs': sum(week['copilot_agent_prs'] for week in weekly_data.values()),
             'total_repositories': total_repositories,
             'weekly_analysis': {}
         }
@@ -663,10 +734,16 @@ class GitHubPRAnalyzer:
         for week_key, data in weekly_data.items():
             total_prs = data['total_prs']
             copilot_percentage = (data['copilot_prs'] / total_prs * 100) if total_prs > 0 else 0
+            copilot_review_percentage = (data['copilot_review_prs'] / total_prs * 100) if total_prs > 0 else 0
+            copilot_agent_percentage = (data['copilot_agent_prs'] / total_prs * 100) if total_prs > 0 else 0
             results['weekly_analysis'][week_key] = {
                 'total_prs': total_prs,
                 'copilot_assisted_prs': data['copilot_prs'],
+                'copilot_review_prs': data['copilot_review_prs'],
+                'copilot_agent_prs': data['copilot_agent_prs'],
                 'copilot_percentage': round(copilot_percentage, 2),
+                'copilot_review_percentage': round(copilot_review_percentage, 2),
+                'copilot_agent_percentage': round(copilot_agent_percentage, 2),
                 'unique_collaborators': len(data['collaborators']),
                 'collaborators': list(data['collaborators']),
                 'repositories': list(data['repositories']),
@@ -689,8 +766,9 @@ class GitHubPRAnalyzer:
             with open(filename, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow([
-                    'Week', 'Total PRs', 'Copilot Assisted PRs', 
-                    'Copilot Percentage', 'Unique Collaborators', 'Collaborators'
+                    'Week', 'Total PRs', 'Copilot Assisted PRs', 'Copilot Review PRs', 'Copilot Agent PRs',
+                    'Copilot Percentage', 'Copilot Review Percentage', 'Copilot Agent Percentage',
+                    'Unique Collaborators', 'Collaborators'
                 ])
                 
                 for week, data in results['weekly_analysis'].items():
@@ -698,7 +776,11 @@ class GitHubPRAnalyzer:
                         week,
                         data['total_prs'],
                         data['copilot_assisted_prs'],
+                        data['copilot_review_prs'],
+                        data['copilot_agent_prs'],
                         data['copilot_percentage'],
+                        data['copilot_review_percentage'],
+                        data['copilot_agent_percentage'],
                         data['unique_collaborators'],
                         ', '.join(data['collaborators'])
                     ])

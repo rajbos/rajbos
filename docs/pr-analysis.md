@@ -98,12 +98,20 @@ This monitoring helps users understand their API consumption and plan analysis r
 
 #### Copilot Detection Methods
 
-The script detects GitHub Copilot collaboration through:
+The script detects GitHub Copilot collaboration and categorizes by assistance type:
 
-- **Author Detection**: PRs created by the Copilot bot user
+- **Author Detection**: PRs created by the Copilot bot user (categorized as 'agent')
 - **Keyword Analysis**: PR titles/descriptions mentioning "copilot", "co-pilot", "github copilot", "ai-assisted"
-- **Assignee Analysis**: PRs with Copilot as an assignee
+  - **Review Type**: Keywords like "review", "feedback", "suggestion", "comment", "approve"
+  - **Agent Type**: Keywords like "generate", "create", "implement", "code", "develop", "write"
+- **Assignee Analysis**: PRs with Copilot as an assignee (categorized as 'review')
 - **Commit Analysis**: Commit messages mentioning Copilot or containing co-authored-by patterns
+  - **Co-authored Commits**: Indicate code generation (categorized as 'agent')
+  - **Review Context**: Commit messages with review-related keywords (categorized as 'review')
+
+**Categories:**
+- **Coding Review**: PRs where Copilot was used for code review assistance
+- **Coding Agent**: PRs where Copilot was used for code generation/development
 
 #### Dependabot Detection Methods
 
@@ -131,7 +139,8 @@ This script reads the JSON analysis results and generates interactive mermaid ch
 
 1. **PR Trends Chart**: Shows total PRs, Copilot-assisted PRs, and Dependabot PRs over time
 2. **Copilot Usage Percentage Chart**: Displays the percentage trends for Copilot adoption
-3. **Repository Activity Breakdown**: Shows top repositories by PR activity (when analyzing all repos)
+3. **Copilot Assistance Types Chart**: Stacked bar chart showing breakdown by assistance type (Coding Review vs Coding Agent)
+4. **Repository Activity Breakdown**: Shows top repositories by PR activity (when analyzing all repos)
 
 The charts are automatically displayed in the GitHub Actions step summary for easy visualization.
 
@@ -171,13 +180,19 @@ The workflow:
   "analyzed_repository": "all_repositories",
   "total_prs": 15,
   "total_copilot_prs": 8,
+  "total_copilot_review_prs": 3,
+  "total_copilot_agent_prs": 5,
   "total_dependabot_prs": 4,
   "total_repositories": 42,
   "weekly_analysis": {
     "2024-W41": {
       "total_prs": 3,
       "copilot_assisted_prs": 1,
+      "copilot_review_prs": 0,
+      "copilot_agent_prs": 1,
       "copilot_percentage": 33.33,
+      "copilot_review_percentage": 0.0,
+      "copilot_agent_percentage": 33.33,
       "dependabot_prs": 1,
       "dependabot_percentage": 33.33,
       "unique_collaborators": 2,
@@ -190,7 +205,8 @@ The workflow:
           "author": "rajbos",
           "repository": "repo1",
           "created_at": "2024-10-08T10:00:00Z",
-          "copilot_assisted": false,
+          "copilot_assisted": true,
+          "copilot_type": "agent",
           "dependabot_pr": false,
           "url": "https://github.com/rajbos/repo1/pull/1"
         }
@@ -203,8 +219,8 @@ The workflow:
 ### CSV Output Structure
 
 ```csv
-Week,Total PRs,Copilot Assisted PRs,Copilot Percentage,Dependabot PRs,Dependabot Percentage,Unique Collaborators,Collaborators
-2024-W41,3,1,33.33,1,33.33,2,"rajbos, dependabot"
+Week,Total PRs,Copilot Assisted PRs,Copilot Review PRs,Copilot Agent PRs,Copilot Percentage,Copilot Review Percentage,Copilot Agent Percentage,Unique Collaborators,Collaborators
+2024-W41,3,1,0,1,33.33,0.0,33.33,2,"rajbos, dependabot"
 ```
 
 ## Security
@@ -245,6 +261,8 @@ The workflow automatically generates charts and data tables in the step summary:
   - **📊 Pull Request Trends Data**: Corresponding table with exact weekly numbers (in collapsed section)
 - **🤖 GitHub Copilot Usage Trends**: Percentage chart showing Copilot adoption patterns
   - **📊 Copilot Usage Percentage Data**: Corresponding table with exact weekly percentages (in collapsed section)
+- **🤖📝 GitHub Copilot Assistance Types**: Stacked bar chart showing breakdown by assistance type (Coding Review vs Coding Agent)
+  - **📊 Copilot Assistance Types Data**: Corresponding table with assistance type breakdown (in collapsed section)
 - **📚 Repository Activity Breakdown**: Bar chart of most active repositories
   - **📊 Repository Activity Data**: Corresponding table with exact repository PR counts (in collapsed section)
 
