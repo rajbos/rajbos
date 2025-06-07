@@ -18,15 +18,16 @@ This repository includes a GitHub Actions workflow and Python scripts to analyze
 The script analyzes pull requests and provides:
 
 1. **HTTP Request Caching**: All GitHub API requests are cached for 4 hours using SQLite backend to reduce API calls and improve performance
-2. **Multi-Repository Analysis**: Analyzes PRs across all user repositories and organization repositories where the user has been involved
-2. **Organization Support**: Automatically discovers and analyzes PRs from all organizations the user belongs to
-2. **Pull Request Retrieval**: Fetches all PRs from the past 3 months using GitHub's REST API
-3. **Collaborator Analysis**: Identifies all collaborators on PRs
-4. **Weekly Grouping**: Calculates PR counts for each week
-5. **Copilot Detection**: Determines which PRs were co-created with GitHub Copilot
-6. **Dependabot Detection**: Identifies PRs created by Dependabot for dependency updates
-7. **Output Formats**: Results in JSON or CSV format
-8. **Repository Filtering**: Automatically skips archived and disabled repositories to focus analysis on active repositories
+2. **Rate Limit Monitoring**: Displays current GitHub API rate limit status and reset time in minutes/seconds
+3. **Multi-Repository Analysis**: Analyzes PRs across all user repositories and organization repositories where the user has been involved
+4. **Organization Support**: Automatically discovers and analyzes PRs from all organizations the user belongs to
+5. **Pull Request Retrieval**: Fetches all PRs from the past 3 months using GitHub's REST API
+6. **Collaborator Analysis**: Identifies all collaborators on PRs
+7. **Weekly Grouping**: Calculates PR counts for each week
+8. **Copilot Detection**: Determines which PRs were co-created with GitHub Copilot
+9. **Dependabot Detection**: Identifies PRs created by Dependabot for dependency updates
+10. **Output Formats**: Results in JSON or CSV format
+11. **Repository Filtering**: Automatically skips archived and disabled repositories to focus analysis on active repositories
 
 #### Repository Filtering
 
@@ -82,6 +83,18 @@ The script implements efficient HTTP request caching to improve performance and 
 - **Cache Location**: Stored in `.http_cache/` directory (excluded from git via `.gitignore`)
 
 This caching reduces redundant API calls, especially for repository metadata and pull request data that doesn't change frequently.
+
+#### Rate Limit Monitoring
+
+The script includes real-time GitHub API rate limit monitoring to help users understand their current API usage:
+
+- **Non-Cached Rate Limit Check**: Makes a dedicated API call to `/rate_limit` endpoint (not cached to ensure real-time data)
+- **Remaining Requests**: Displays current remaining requests out of the total limit (e.g., "3000/5000")
+- **Reset Time Display**: Shows time until rate limit resets in human-readable format ("29 minutes and 30 seconds")
+- **Error Handling**: Gracefully handles rate limit API failures with warning messages
+- **Real-Time Status**: Called at the start of analysis to provide immediate feedback on API capacity
+
+This monitoring helps users understand their API consumption and plan analysis runs accordingly, especially important for large-scale repository analysis.
 
 #### Copilot Detection Methods
 
