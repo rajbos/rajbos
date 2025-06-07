@@ -442,7 +442,7 @@ class GitHubPRAnalyzer:
             is_private = self.repo_privacy_cache.get(self.repo, False)
             print(f"Repository privacy: [{is_private}]")
             masked_repo = mask_private_repo_name(self.repo, is_private)
-            print(f"Fetching pull requests from [{self.owner}]/[{masked_repo}] since [{three_months_ago.date()}]...")
+            print(f"Fetching pull requests from [{self.owner}/{masked_repo}] since [{three_months_ago.date()}]...")
             prs = self.get_pull_requests(three_months_ago, self.repo)
             all_prs.extend(prs)
             total_repositories = 1
