@@ -436,8 +436,7 @@ class GitHubPRAnalyzer:
         total_repositories = 0
         
         if self.repo:
-            # Analyze single repository (original behavior)
-            # Get privacy info for single repo
+            # Analyze single repository
             self.get_repository_info(self.repo)
             is_private = self.repo_privacy_cache.get(self.repo, False)
             print(f"Repository privacy: [{is_private}]")
@@ -447,7 +446,7 @@ class GitHubPRAnalyzer:
             all_prs.extend(prs)
             total_repositories = 1
         else:
-            # Analyze all user repositories (existing behavior)
+            # Analyze all user repositories
             print(f"Fetching all repositories for user [{self.owner}]...")
             repositories = self.get_user_repositories()
             total_repositories = len(repositories)
