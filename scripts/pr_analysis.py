@@ -107,6 +107,39 @@ class GitHubPRAnalyzer:
         
         return cache_info
     
+    def get_rate_limit_info(self) -> Dict[str, Any]:
+        """Get current rate limit information from GitHub API (non-cached call)."""
+        import requests
+        from datetime import timezone
+        
+        # Use a non-cached session for rate limit info
+        url = f'{self.base_url}/rate_limit'
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        
+        rate_limit_data = response.json()
+        
+        # Calculate time until reset
+        reset_timestamp = rate_limit_data['rate']['reset']
+        reset_datetime = datetime.fromtimestamp(reset_timestamp, tz=timezone.utc)
+        current_time = datetime.now(timezone.utc)
+        time_until_reset = reset_datetime - current_time
+        
+        # Convert to minutes and seconds
+        total_seconds = int(time_until_reset.total_seconds())
+        minutes = total_seconds // 60
+        seconds = total_seconds % 60
+        
+        return {
+            'remaining': rate_limit_data['rate']['remaining'],
+            'limit': rate_limit_data['rate']['limit'],
+            'reset_timestamp': reset_timestamp,
+            'reset_datetime': reset_datetime.isoformat(),
+            'time_until_reset_minutes': minutes,
+            'time_until_reset_seconds': seconds,
+            'time_until_reset_total_seconds': total_seconds
+        }
+    
     def get_user_repositories(self) -> List[Dict[str, Any]]:
         """Fetch all repositories for the user."""
         repos = []
@@ -720,6 +753,17 @@ def main():
     if cache_info['cache_enabled']:
         print(f"Cache location: [{cache_info['cache_location']}]")
         print(f"Cached responses: [{cache_info.get('cache_size', 'unknown')}]")
+    
+    # Print rate limit information
+    try:
+        rate_limit_info = analyzer.get_rate_limit_info()
+        print(f"Rate limit remaining: [{rate_limit_info['remaining']}]/[{rate_limit_info['limit']}]")
+        if rate_limit_info['time_until_reset_total_seconds'] > 0:
+            print(f"Rate limit resets in: [{rate_limit_info['time_until_reset_minutes']}] minutes and [{rate_limit_info['time_until_reset_seconds']}] seconds")
+        else:
+            print("Rate limit has already reset")
+    except Exception as e:
+        print(f"Warning: Could not fetch rate limit info: [{e}]")
     
     if clean_cache:
         print("Cache cleaning mode enabled - starting with fresh cache")
