@@ -438,7 +438,9 @@ class GitHubPRAnalyzer:
             repo_owner = pr.get('repository_owner', self.owner)
             reviews = self.get_pr_reviews(pr['number'], repo_name, repo_owner)
             for review in reviews:
-                if review['user']['login'] == 'Copilot':
+                reviewer_login = review['user']['login']
+                if (reviewer_login == 'Copilot' or 
+                    ('copilot' in reviewer_login.lower() and 'review' in reviewer_login.lower())):
                     return 'review'  # Copilot provided a review indicates review assistance
         except Exception as e:
             print(f"Warning: Could not fetch reviews for PR #[{pr['number']}]: [{e}]")
