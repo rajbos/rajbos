@@ -356,15 +356,36 @@ class GitHubPRAnalyzer:
         response.raise_for_status()
         return response.json()
     
+    def get_pr_reviews(self, pr_number: int, repo_name: str = None, repo_owner: str = None) -> List[Dict[str, Any]]:
+        """Get reviews for a specific pull request."""
+        target_repo = repo_name or self.repo
+        target_owner = repo_owner or self.owner
+        if not target_repo:
+            raise ValueError("Repository name is required")
+            
+        url = f'{self.base_url}/repos/{target_owner}/{target_repo}/pulls/{pr_number}/reviews'
+        response = self.session.get(url, headers=self.headers)
+        response.raise_for_status()
+        return response.json()
+    
     def detect_copilot_collaboration(self, pr: Dict[str, Any]) -> str:
         """
         Detect if a PR was created with GitHub Copilot collaboration and categorize the type.
         
         This function looks for various indicators of Copilot usage:
-        1. PR title or body mentioning Copilot
-        2. Co-authored-by tags in commits
-        3. User being the Copilot bot
-        4. Specific patterns in commit messages
+        1. Copilot as reviewer (requested or actual) -> 'review' assistance
+        2. Copilot as assignee -> 'agent' assistance  
+        3. PR title or body mentioning Copilot (with context analysis)
+        4. Co-authored-by tags in commits -> 'agent' assistance
+        5. User being the Copilot bot -> 'agent' assistance
+        6. Specific patterns in commit messages (with context analysis)
+        
+        Detection priority (first match wins):
+        - Copilot bot as author -> 'agent'
+        - Copilot as requested reviewer -> 'review'
+        - Copilot as actual reviewer -> 'review'
+        - Copilot as assignee -> 'agent'
+        - Context-based analysis of mentions and commits
         
         Returns:
             str: 'none' if no Copilot detected, 'review' for coding review assistance, 
@@ -373,6 +394,30 @@ class GitHubPRAnalyzer:
         # Check if the author is Copilot bot
         if pr['user']['login'] == 'Copilot':
             return 'agent'  # Copilot bot authoring is considered agent work
+        
+        # Check for Copilot as reviewer (indicates review assistance)
+        # First check requested_reviewers in PR data
+        if pr.get('requested_reviewers'):
+            for reviewer in pr['requested_reviewers']:
+                if reviewer['login'] == 'Copilot':
+                    return 'review'  # Copilot requested as reviewer indicates review assistance
+        
+        # Check actual reviews for Copilot (requires additional API call)
+        try:
+            repo_name = pr.get('repository_name', self.repo)
+            repo_owner = pr.get('repository_owner', self.owner)
+            reviews = self.get_pr_reviews(pr['number'], repo_name, repo_owner)
+            for review in reviews:
+                if review['user']['login'] == 'Copilot':
+                    return 'review'  # Copilot provided a review indicates review assistance
+        except Exception as e:
+            print(f"Warning: Could not fetch reviews for PR #[{pr['number']}]: [{e}]")
+        
+        # Check assignees for Copilot (indicates agent assistance)
+        if pr.get('assignees'):
+            for assignee in pr['assignees']:
+                if assignee['login'] == 'Copilot':
+                    return 'agent'  # Copilot as assignee indicates agent assistance
         
         # Check PR title and body for Copilot mentions
         title = pr['title'].lower()
@@ -395,12 +440,6 @@ class GitHubPRAnalyzer:
             else:
                 # Default to agent if Copilot mentioned but no specific context
                 return 'agent'
-        
-        # Check assignees for Copilot
-        if pr.get('assignees'):
-            for assignee in pr['assignees']:
-                if assignee['login'] == 'Copilot':
-                    return 'review'  # Copilot as assignee suggests review assistance
         
         # Check commits for co-authored patterns (this would require additional API calls)
         try:
