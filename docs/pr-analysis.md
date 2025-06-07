@@ -106,7 +106,7 @@ python scripts/pr_analysis.py
 This script reads the JSON analysis results and generates interactive mermaid charts:
 
 1. **PR Trends Chart**: Shows total PRs, Copilot-assisted PRs, and Dependabot PRs over time
-2. **Copilot & Dependabot Usage Percentage Chart**: Displays the percentage trends for both Copilot and Dependabot usage
+2. **Copilot Usage Percentage Chart**: Displays the percentage trends for Copilot adoption
 3. **Repository Activity Breakdown**: Shows top repositories by PR activity (when analyzing all repos)
 
 The charts are automatically displayed in the GitHub Actions step summary for easy visualization.
@@ -217,8 +217,8 @@ The workflow automatically generates charts and data tables in the step summary:
 
 - **📈 Pull Request Trends**: Line chart showing total PRs, Copilot-assisted PRs, and Dependabot PRs over time
   - **📊 Pull Request Trends Data**: Corresponding table with exact weekly numbers (in collapsed section)
-- **🤖 GitHub Copilot & Dependabot Usage Trends**: Percentage chart showing both Copilot and Dependabot adoption patterns
-  - **📊 Usage Percentage Data**: Corresponding table with exact weekly percentages (in collapsed section)
+- **🤖 GitHub Copilot Usage Trends**: Percentage chart showing Copilot adoption patterns
+  - **📊 Copilot Usage Percentage Data**: Corresponding table with exact weekly percentages (in collapsed section)
 - **📚 Repository Activity Breakdown**: Bar chart of most active repositories
   - **📊 Repository Activity Data**: Corresponding table with exact repository PR counts (in collapsed section)
 
