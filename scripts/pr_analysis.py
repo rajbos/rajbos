@@ -199,7 +199,7 @@ class GitHubPRAnalyzer:
                                 repo_list = [repo.strip() for repo in parts[1].split(',') if repo.strip()]
                                 if org_name and repo_list:
                                     config['partially_skipped'][org_name] = repo_list
-                                    print(f"  Org '{org_name}' will be partially filtered to include only: {repo_list}")
+                                    print(f"  Org '[{org_name}]' will be partially filtered to include only: [{repo_list}]")
                         else:
                             # Traditional format: simple org name
                             org_name = line
@@ -207,11 +207,11 @@ class GitHubPRAnalyzer:
                                 config['fully_skipped'].append(org_name)
                 
                 total_filtered = len(config['fully_skipped']) + len(config['partially_skipped'])
-                print(f"Loaded organization filters from config: {len(config['fully_skipped'])} fully skipped, {len(config['partially_skipped'])} partially filtered")
+                print(f"Loaded organization filters from config: [{len(config['fully_skipped'])}] fully skipped, [{len(config['partially_skipped'])}] partially filtered")
             else:
                 print("No skipped organizations config file found")
         except Exception as e:
-            print(f"Warning: Could not load skipped organizations config: {e}")
+            print(f"Warning: Could not load skipped organizations config: [{e}]")
         
         return config
     
@@ -389,7 +389,7 @@ class GitHubPRAnalyzer:
                 if 'co-authored-by:' in commit_message and 'copilot' in commit_message:
                     return True
         except Exception as e:
-            print(f"Warning: Could not fetch commits for PR #{pr['number']}: {e}")
+            print(f"Warning: Could not fetch commits for PR #[{pr['number']}]: [{e}]")
         
         return False
     
@@ -440,48 +440,48 @@ class GitHubPRAnalyzer:
             # Get privacy info for single repo
             self.get_repository_info(self.repo)
             is_private = self.repo_privacy_cache.get(self.repo, False)
-            print(f"Repository privacy: {is_private}")
+            print(f"Repository privacy: [{is_private}]")
             masked_repo = mask_private_repo_name(self.repo, is_private)
-            print(f"Fetching pull requests from {self.owner}/{masked_repo} since {three_months_ago.date()}...")
+            print(f"Fetching pull requests from [{self.owner}]/[{masked_repo}] since [{three_months_ago.date()}]...")
             prs = self.get_pull_requests(three_months_ago, self.repo)
             all_prs.extend(prs)
             total_repositories = 1
         else:
             # Analyze all user repositories (existing behavior)
-            print(f"Fetching all repositories for user {self.owner}...")
+            print(f"Fetching all repositories for user [{self.owner}]...")
             repositories = self.get_user_repositories()
             total_repositories = len(repositories)
-            print(f"Found {total_repositories} repositories")
+            print(f"Found [{total_repositories}] repositories")
             
             for repo in repositories:
                 repo_name = repo['name']                
                 is_private = self.repo_privacy_cache.get(repo_name, False)
                 masked_repo_name = mask_private_repo_name(repo_name, is_private)
-                print(f"Repository privacy: {is_private} for repository: {masked_repo_name}")
+                print(f"Repository privacy: [{is_private}] for repository: [{masked_repo_name}]")
                 if should_show_analysis_message(is_private):
-                    print(f"Analyzing repository: {masked_repo_name}")
+                    print(f"Analyzing repository: [{masked_repo_name}]")
                 try:
                     prs = self.get_pull_requests(three_months_ago, repo_name)
                     all_prs.extend(prs)
                     if should_show_analysis_message(is_private):
-                        print(f"  Found {len(prs)} PRs in {masked_repo_name}")
+                        print(f"  Found [{len(prs)}] PRs in [{masked_repo_name}]")
                 except Exception as e:
                     if should_show_analysis_message(is_private):
-                        print(f"  Warning: Could not fetch PRs from {masked_repo_name}: {e}")
+                        print(f"  Warning: Could not fetch PRs from [{masked_repo_name}]: [{e}]")
                     continue
             
-            print(f"Fetching organizations for user {self.owner}...")
+            print(f"Fetching organizations for user [{self.owner}]...")
             try:
                 organizations = self.get_user_organizations()
                 org_config = self.load_skipped_organizations()
-                print(f"Found {len(organizations)} organizations")
+                print(f"Found [{len(organizations)}] organizations")
                 
                 for org in organizations:
                     org_name = org['login']
                     
                     # Check if org is fully skipped
                     if org_name in org_config['fully_skipped']:
-                        print(f"Skipping organization: {org_name} (configured to skip)")
+                        print(f"Skipping organization: [{org_name}] (configured to skip)")
                         continue
                     
                     # Check if org is partially filtered
@@ -489,43 +489,43 @@ class GitHubPRAnalyzer:
                     included_repos = org_config['partially_skipped'].get(org_name, []) if is_partially_filtered else []
                     
                     if is_partially_filtered:
-                        print(f"Analyzing organization: {org_name} (filtered to include only: {included_repos})")
+                        print(f"Analyzing organization: [{org_name}] (filtered to include only: [{included_repos}])")
                     else:
-                        print(f"Analyzing organization: {org_name}")
+                        print(f"Analyzing organization: [{org_name}]")
                     
                     try:
                         org_repos = self.get_organization_repositories(org_name)
-                        print(f"  Found {len(org_repos)} repositories in {org_name}")
+                        print(f"  Found [{len(org_repos)}] repositories in [{org_name}]")
                         
                         for repo in org_repos:
                             repo_name = repo['name']
                             
                             # If org is partially filtered, only process included repos
                             if is_partially_filtered and repo_name not in included_repos:
-                                print(f"  Skipping {org_name}/{repo_name} (not in included list)")
+                                print(f"  Skipping [{org_name}]/[{repo_name}] (not in included list)")
                                 continue
                             
-                            print(f"  Analyzing org repository: {org_name}/{repo_name}")
+                            print(f"  Analyzing org repository: [{org_name}]/[{repo_name}]")
                             is_private = is_private_repository(repo)
                             if should_show_analysis_message(is_private):
-                                print(f"  Analyzing org repository: {org_name}/{repo_name}")
+                                print(f"  Analyzing org repository: [{org_name}]/[{repo_name}]")
                             try:
                                 # Filter by user involvement in organization repositories
                                 prs = self.get_pull_requests(three_months_ago, repo_name, org_name, filter_by_user=True)
                                 all_prs.extend(prs)
                                 if should_show_analysis_message(is_private):
-                                    print(f"    Found {len(prs)} PRs involving user in {org_name}/{repo_name}")
+                                    print(f"    Found [{len(prs)}] PRs involving user in [{org_name}]/[{repo_name}]")
                             except Exception as e:
                                 if should_show_analysis_message(is_private):
-                                    print(f"    Warning: Could not fetch PRs from {org_name}/{repo_name}: {e}")
+                                    print(f"    Warning: Could not fetch PRs from [{org_name}]/[{repo_name}]: [{e}]")
                                 continue
                     except Exception as e:
-                        print(f"  Warning: Could not fetch repositories from organization {org_name}: {e}")
+                        print(f"  Warning: Could not fetch repositories from organization [{org_name}]: [{e}]")
                         continue
             except Exception as e:
-                print(f"Warning: Could not fetch organizations: {e}")
+                print(f"Warning: Could not fetch organizations: [{e}]")
         
-        print(f"Total pull requests found: {len(all_prs)}")
+        print(f"Total pull requests found: [{len(all_prs)}]")
         
         # Group PRs by week and analyze
         weekly_data = defaultdict(lambda: {
@@ -669,7 +669,7 @@ def main():
             repo = current_repo
     
     if analyze_all:
-        print(f"Analyzing all repositories for user: {owner}")
+        print(f"Analyzing all repositories for user: [{owner}]")
         analyzer = GitHubPRAnalyzer(github_token, owner)
     else:
         if not repo:
@@ -680,48 +680,48 @@ def main():
         is_private = analyzer.repo_privacy_cache.get(repo, False)
         masked_repo = mask_private_repo_name(repo, is_private)
         if should_show_analysis_message(is_private):
-            print(f"Analyzing repository: {owner}/{masked_repo}")
+            print(f"Analyzing repository: [{owner}]/[{masked_repo}]")
     
     # Print cache information
     cache_info = analyzer.get_cache_info()
-    print(f"Cache enabled: {cache_info['cache_enabled']}")
+    print(f"Cache enabled: [{cache_info['cache_enabled']}]")
     if cache_info['cache_enabled']:
-        print(f"Cache location: {cache_info['cache_location']}")
-        print(f"Cached responses: {cache_info.get('cache_size', 'unknown')}")
+        print(f"Cache location: [{cache_info['cache_location']}]")
+        print(f"Cached responses: [{cache_info.get('cache_size', 'unknown')}]")
     
     try:
         results = analyzer.analyze_pull_requests()
         
         # Save results
         filename = analyzer.save_results(results, output_format)
-        print(f"Analysis complete! Results saved to: {filename}")
+        print(f"Analysis complete! Results saved to: [{filename}]")
         
         # Print summary
         print("\n=== SUMMARY ===")
-        print(f"Total repositories analyzed: {results['total_repositories']}")
-        print(f"Total PRs analyzed: {results['total_prs']}")
-        print(f"Copilot-assisted PRs: {results['total_copilot_prs']}")
-        print(f"Dependabot PRs: {results['total_dependabot_prs']}")
+        print(f"Total repositories analyzed: [{results['total_repositories']}]")
+        print(f"Total PRs analyzed: [{results['total_prs']}]")
+        print(f"Copilot-assisted PRs: [{results['total_copilot_prs']}]")
+        print(f"Dependabot PRs: [{results['total_dependabot_prs']}]")
         if results['total_prs'] > 0:
             # Calculate copilot percentage excluding dependabot PRs from denominator
             total_non_dependabot_prs = results['total_prs'] - results['total_dependabot_prs']
             if total_non_dependabot_prs > 0:
                 overall_copilot_percentage = results['total_copilot_prs'] / total_non_dependabot_prs * 100
-                print(f"Total PRs - Dependabot PRs: {results['total_prs']} - {results['total_dependabot_prs']} = {total_non_dependabot_prs}")
-                print(f"Overall Copilot Usage on PRs (excluding Dependabot): {overall_copilot_percentage:.2f}%")
+                print(f"Total PRs - Dependabot PRs: [{results['total_prs']}] - [{results['total_dependabot_prs']}] = [{total_non_dependabot_prs}]")
+                print(f"Overall Copilot Usage on PRs (excluding Dependabot): [{overall_copilot_percentage:.2f}]%")
             else:
-                print(f"Total PRs - Dependabot PRs: {results['total_prs']} - {results['total_dependabot_prs']} = 0")
+                print(f"Total PRs - Dependabot PRs: [{results['total_prs']}] - [{results['total_dependabot_prs']}] = 0")
                 print(f"Overall Copilot Usage on PRs (excluding Dependabot): 0% (no non-Dependabot PRs)")
             # Keep dependabot percentage calculated against total PRs
             overall_dependabot_percentage = results['total_dependabot_prs'] / results['total_prs'] * 100
-            print(f"Dependabot Usage compared to total PRs: {overall_dependabot_percentage:.2f}%")
+            print(f"Dependabot Usage compared to total PRs: [{overall_dependabot_percentage:.2f}]%")
         
         print("\n=== WEEKLY BREAKDOWN ===")
         for week, data in sorted(results['weekly_analysis'].items()):
-            print(f"{week}: {data['total_prs']} PRs, {data['copilot_assisted_prs']} Copilot-assisted ({data['copilot_percentage']}%), {data['dependabot_prs']} Dependabot ({data['dependabot_percentage']}%)")
+            print(f"[{week}]: [{data['total_prs']}] PRs, [{data['copilot_assisted_prs']}] Copilot-assisted ([{data['copilot_percentage']}]%), [{data['dependabot_prs']}] Dependabot ([{data['dependabot_percentage']}]%)")
         
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error: [{e}]")
         sys.exit(1)
 
 

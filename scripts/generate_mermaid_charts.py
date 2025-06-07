@@ -300,7 +300,7 @@ def write_to_step_summary(content: str) -> None:
             f.write('\n\n')
     else:
         print("GITHUB_STEP_SUMMARY not set, printing to stdout:")
-        print(content)
+        print(f"{content}")
 
 
 def main():
@@ -308,7 +308,7 @@ def main():
     try:
         # Find and load the latest analysis file
         analysis_file = find_latest_analysis_file()
-        print(f"Reading analysis from: {analysis_file}")
+        print(f"Reading analysis from: [{analysis_file}]")
         
         with open(analysis_file, 'r') as f:
             results = json.load(f)
@@ -369,7 +369,7 @@ def main():
         print("Mermaid charts generated successfully!")
         
     except Exception as e:
-        error_msg = f"Error generating mermaid charts: {e}"
+        error_msg = f"Error generating mermaid charts: [{e}]"
         print(error_msg)
         write_to_step_summary(f"## ❌ Chart Generation Error\n\n{error_msg}")
         sys.exit(1)
