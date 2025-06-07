@@ -213,11 +213,16 @@ Add your Personal Access Token as a repository secret:
 
 ## Visualization Examples
 
-The workflow automatically generates charts in the step summary:
+The workflow automatically generates charts and data tables in the step summary:
 
 - **📈 Pull Request Trends**: Line chart showing total PRs, Copilot-assisted PRs, and Dependabot PRs over time
+  - **📊 Pull Request Trends Data**: Corresponding table with exact weekly numbers (in collapsed section)
 - **🤖 GitHub Copilot & Dependabot Usage Trends**: Percentage chart showing both Copilot and Dependabot adoption patterns
+  - **📊 Usage Percentage Data**: Corresponding table with exact weekly percentages (in collapsed section)
 - **📚 Repository Activity Breakdown**: Bar chart of most active repositories
+  - **📊 Repository Activity Data**: Corresponding table with exact repository PR counts (in collapsed section)
+
+The data tables are displayed in collapsible sections below each chart, providing exact numerical values that correspond to each chart while keeping the interface clean and organized.
 
 ## Customization
 
