@@ -687,6 +687,7 @@ def main():
     repo = os.getenv('GITHUB_REPOSITORY_NAME')
     output_format = os.getenv('OUTPUT_FORMAT', 'json')
     analyze_all = os.getenv('ANALYZE_ALL_REPOS', 'true').lower() == 'true'
+    clean_cache = os.getenv('CLEAN_CACHE', 'false').lower() == 'true'
     
     if not github_token:
         print("Error: GITHUB_TOKEN environment variable is required")
@@ -719,6 +720,9 @@ def main():
     if cache_info['cache_enabled']:
         print(f"Cache location: [{cache_info['cache_location']}]")
         print(f"Cached responses: [{cache_info.get('cache_size', 'unknown')}]")
+    
+    if clean_cache:
+        print("Cache cleaning mode enabled - starting with fresh cache")
     
     try:
         results = analyzer.analyze_pull_requests()
