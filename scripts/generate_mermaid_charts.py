@@ -201,13 +201,21 @@ def generate_summary_stats(results: Dict[str, Any]) -> str:
     lines.append(f"- **Dependabot PRs:** {results.get('total_dependabot_prs', 0)}")
     
     if results.get('total_prs', 0) > 0:
-        overall_copilot_percentage = (results.get('total_copilot_prs', 0) / results.get('total_prs', 1)) * 100
+        # Calculate copilot percentage excluding dependabot PRs from denominator
+        total_non_dependabot_prs = results.get('total_prs', 0) - results.get('total_dependabot_prs', 0)
+        if total_non_dependabot_prs > 0:
+            overall_copilot_percentage = (results.get('total_copilot_prs', 0) / total_non_dependabot_prs) * 100
+            lines.append(f"- **Total PRs - Dependabot PRs:** {results.get('total_prs', 0)} - {results.get('total_dependabot_prs', 0)} = {total_non_dependabot_prs}")
+            lines.append(f"- **Overall Copilot Usage on PRs (excluding Dependabot):** {overall_copilot_percentage:.1f}%")
+        else:
+            lines.append(f"- **Total PRs - Dependabot PRs:** {results.get('total_prs', 0)} - {results.get('total_dependabot_prs', 0)} = 0")
+            lines.append(f"- **Overall Copilot Usage on PRs (excluding Dependabot):** 0% (no non-Dependabot PRs)")
+        # Keep dependabot percentage calculated against total PRs
         overall_dependabot_percentage = (results.get('total_dependabot_prs', 0) / results.get('total_prs', 1)) * 100
-        lines.append(f"- **Overall Copilot Usage:** {overall_copilot_percentage:.1f}%")
-        lines.append(f"- **Overall Dependabot Usage:** {overall_dependabot_percentage:.1f}%")
+        lines.append(f"- **Dependabot Usage compared to total PRs:** {overall_dependabot_percentage:.1f}%")
     else:
-        lines.append("- **Overall Copilot Usage:** 0%")
-        lines.append("- **Overall Dependabot Usage:** 0%")
+        lines.append("- **Overall Copilot Usage on PRs (excluding Dependabot):** 0%")
+        lines.append("- **Dependabot Usage compared to total PRs:** 0%")
     
     return '\n'.join(lines)
 

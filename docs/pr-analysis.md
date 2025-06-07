@@ -36,6 +36,27 @@ By default, the script now analyzes **all repositories** for the authenticated u
 - Fetches repositories from each organization
 - Filters PRs to only include those where the user was involved (as author, assignee, or reviewer)
 - Displays organization repositories with full path (e.g., `org-name/repo-name`)
+- Supports flexible organization filtering via `skipped_orgs.txt` configuration file
+
+#### Organization Filtering
+
+The script supports flexible organization filtering through the `skipped_orgs.txt` configuration file, which supports two filtering modes:
+
+**1. Complete Organization Exclusion:**
+```
+# Skip entire organizations
+LinkedInLearning
+githubpartners
+```
+
+**2. Selective Repository Inclusion:**
+```
+# Skip organization except for specific repositories
+mcp-research:include:mcp-security-scans
+test-org:include:repo1,repo2,repo3
+```
+
+The selective filtering format allows you to exclude an entire organization while still analyzing specific repositories within that organization. This is useful when you want to focus on particular projects within a large organization.
 
 #### HTTP Request Caching
 
