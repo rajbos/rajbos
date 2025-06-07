@@ -249,20 +249,16 @@ def generate_repository_data_table(weekly_data: Dict[str, Any], analyzed_user: s
     top_repos = sorted_repos[:10]
     
     lines = []
-    lines.append("| Owner | Repository | PR Count |")
-    lines.append("|-------|------------|----------|")
+    lines.append("| Repository | PR Count |")
+    lines.append("|------------|----------|")
     
     for repo, count in top_repos:
-        # Parse repository name to extract owner and repo
-        if '/' in repo:
-            # Format: "owner/repo"
-            owner, repo_name = repo.split('/', 1)
-        else:
-            # Format: "repo" (user's own repository)
-            owner = analyzed_user
-            repo_name = repo
+        # Ensure repository name is in "owner/repo" format
+        if '/' not in repo:
+            # Format: "repo" (user's own repository) - add owner prefix
+            repo = f"{analyzed_user}/{repo}"
         
-        lines.append(f"| {owner} | {repo_name} | {count} |")
+        lines.append(f"| {repo} | {count} |")
     
     return '\n'.join(lines)
 
