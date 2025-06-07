@@ -1,0 +1,20 @@
+{
+    "name": "PR Analysis Dev Container",
+    "image": "mcr.microsoft.com/devcontainers/python:3.11",
+    "features": {},
+    "postCreateCommand": "pip install -r requirements.txt",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python3"
+            }
+        }
+    },
+    "runArgs": [
+        "--env-file",
+        ".env"
+    ]
+}

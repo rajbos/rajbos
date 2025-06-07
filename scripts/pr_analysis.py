@@ -439,7 +439,7 @@ class GitHubPRAnalyzer:
             # Analyze single repository
             self.get_repository_info(self.repo)
             is_private = self.repo_privacy_cache.get(self.repo, False)
-            print(f"Repository privacy: [{is_private}]")
+            print(f"Repository is private: [{is_private}]")
             masked_repo = mask_private_repo_name(self.repo, is_private)
             print(f"Fetching pull requests from [{self.owner}/{masked_repo}] since [{three_months_ago.date()}]...")
             prs = self.get_pull_requests(three_months_ago, self.repo)
@@ -530,24 +530,23 @@ class GitHubPRAnalyzer:
         weekly_data = defaultdict(lambda: {
             'total_prs': 0,
             'copilot_prs': 0,
-            'dependabot_prs': 0,
             'collaborators': set(),
             'repositories': set(),
             'pr_details': []
         })
         
         for pr in all_prs:
+            # Skip Dependabot PRs entirely
+            if self.detect_dependabot_pr(pr):
+                continue
             created_at = datetime.fromisoformat(pr['created_at'].replace('Z', '+00:00'))
             week_key = self.get_week_key(created_at)
             
             is_copilot_assisted = self.detect_copilot_collaboration(pr)
-            is_dependabot_pr = self.detect_dependabot_pr(pr)
             
             weekly_data[week_key]['total_prs'] += 1
             if is_copilot_assisted:
                 weekly_data[week_key]['copilot_prs'] += 1
-            if is_dependabot_pr:
-                weekly_data[week_key]['dependabot_prs'] += 1
             
             # Add collaborators
             weekly_data[week_key]['collaborators'].add(pr['user']['login'])
@@ -571,7 +570,6 @@ class GitHubPRAnalyzer:
                 'repository': masked_repo_name,
                 'created_at': pr['created_at'],
                 'copilot_assisted': is_copilot_assisted,
-                'dependabot_pr': is_dependabot_pr,
                 'url': pr['html_url']
             })
         
@@ -582,26 +580,19 @@ class GitHubPRAnalyzer:
             'period_end': datetime.now(timezone.utc).isoformat(),
             'analyzed_user': self.owner,
             'analyzed_repository': self.repo if self.repo else 'all_repositories_and_organizations',
-            'total_prs': len(all_prs),
+            'total_prs': sum(week['total_prs'] for week in weekly_data.values()),
             'total_copilot_prs': sum(week['copilot_prs'] for week in weekly_data.values()),
-            'total_dependabot_prs': sum(week['dependabot_prs'] for week in weekly_data.values()),
             'total_repositories': total_repositories,
             'weekly_analysis': {}
         }
         
         for week_key, data in weekly_data.items():
-            # Calculate copilot percentage excluding dependabot PRs from denominator
-            total_non_dependabot_prs = data['total_prs'] - data['dependabot_prs']
-            copilot_percentage = (data['copilot_prs'] / total_non_dependabot_prs * 100) if total_non_dependabot_prs > 0 else 0
-            # Keep dependabot percentage calculated against total PRs
-            dependabot_percentage = (data['dependabot_prs'] / data['total_prs'] * 100) if data['total_prs'] > 0 else 0
-            
+            total_prs = data['total_prs']
+            copilot_percentage = (data['copilot_prs'] / total_prs * 100) if total_prs > 0 else 0
             results['weekly_analysis'][week_key] = {
-                'total_prs': data['total_prs'],
+                'total_prs': total_prs,
                 'copilot_assisted_prs': data['copilot_prs'],
                 'copilot_percentage': round(copilot_percentage, 2),
-                'dependabot_prs': data['dependabot_prs'],
-                'dependabot_percentage': round(dependabot_percentage, 2),
                 'unique_collaborators': len(data['collaborators']),
                 'collaborators': list(data['collaborators']),
                 'repositories': list(data['repositories']),
@@ -625,8 +616,7 @@ class GitHubPRAnalyzer:
                 writer = csv.writer(f)
                 writer.writerow([
                     'Week', 'Total PRs', 'Copilot Assisted PRs', 
-                    'Copilot Percentage', 'Dependabot PRs', 'Dependabot Percentage',
-                    'Unique Collaborators', 'Collaborators'
+                    'Copilot Percentage', 'Unique Collaborators', 'Collaborators'
                 ])
                 
                 for week, data in results['weekly_analysis'].items():
@@ -635,8 +625,6 @@ class GitHubPRAnalyzer:
                         data['total_prs'],
                         data['copilot_assisted_prs'],
                         data['copilot_percentage'],
-                        data['dependabot_prs'],
-                        data['dependabot_percentage'],
                         data['unique_collaborators'],
                         ', '.join(data['collaborators'])
                     ])
@@ -700,24 +688,12 @@ def main():
         print(f"Total repositories analyzed: [{results['total_repositories']}]")
         print(f"Total PRs analyzed: [{results['total_prs']}]")
         print(f"Copilot-assisted PRs: [{results['total_copilot_prs']}]")
-        print(f"Dependabot PRs: [{results['total_dependabot_prs']}]")
         if results['total_prs'] > 0:
-            # Calculate copilot percentage excluding dependabot PRs from denominator
-            total_non_dependabot_prs = results['total_prs'] - results['total_dependabot_prs']
-            if total_non_dependabot_prs > 0:
-                overall_copilot_percentage = results['total_copilot_prs'] / total_non_dependabot_prs * 100
-                print(f"Total PRs - Dependabot PRs: [{results['total_prs']}] - [{results['total_dependabot_prs']}] = [{total_non_dependabot_prs}]")
-                print(f"Overall Copilot Usage on PRs (excluding Dependabot): [{overall_copilot_percentage:.2f}]%")
-            else:
-                print(f"Total PRs - Dependabot PRs: [{results['total_prs']}] - [{results['total_dependabot_prs']}] = 0")
-                print(f"Overall Copilot Usage on PRs (excluding Dependabot): 0% (no non-Dependabot PRs)")
-            # Keep dependabot percentage calculated against total PRs
-            overall_dependabot_percentage = results['total_dependabot_prs'] / results['total_prs'] * 100
-            print(f"Dependabot Usage compared to total PRs: [{overall_dependabot_percentage:.2f}]%")
-        
+            overall_copilot_percentage = results['total_copilot_prs'] / results['total_prs'] * 100
+            print(f"Overall Copilot Usage on PRs: [{overall_copilot_percentage:.2f}]%")
         print("\n=== WEEKLY BREAKDOWN ===")
         for week, data in sorted(results['weekly_analysis'].items()):
-            print(f"[{week}]: [{data['total_prs']}] PRs, [{data['copilot_assisted_prs']}] Copilot-assisted ([{data['copilot_percentage']}]%), [{data['dependabot_prs']}] Dependabot ([{data['dependabot_percentage']}]%)")
+            print(f"[{week}]: [{data['total_prs']}] PRs, [{data['copilot_assisted_prs']}] Copilot-assisted: [{data['copilot_percentage']}%])")
         
     except Exception as e:
         print(f"Error: [{e}]")
