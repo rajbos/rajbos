@@ -74,7 +74,7 @@ class GitHubPRAnalyzer:
         self.session = requests_cache.CachedSession(
             cache_name=os.path.join(cache_dir, 'github_api_cache'),
             backend='sqlite',
-            expire_after=timedelta(hours=4),
+            expire_after=timedelta(hours=20),
             allowable_codes=[200, 404],  # Cache successful responses and 404s
             allowable_methods=['GET'],   # Only cache GET requests
             stale_if_error=True         # Return stale cache if request fails
