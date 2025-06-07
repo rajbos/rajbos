@@ -67,7 +67,7 @@ def generate_trend_chart(weekly_data: Dict[str, Any]) -> str:
     chart_lines = []
     chart_lines.append("```mermaid")
     chart_lines.append("xychart-beta")
-    chart_lines.append('    title "Pull Request Trends Over Time"')
+    chart_lines.append('    title "Pull Requests total vs GitHub Copilot Assisted"')
     chart_lines.append('    x-axis [' + ', '.join(f'"{format_week_for_display(week)}"' for week in sorted_weeks) + ']')
     chart_lines.append('    y-axis "Number of PRs" 0 --> ' + str(max(data['total_prs'] for data in weekly_data.values()) + 5))
     
@@ -263,6 +263,11 @@ def generate_summary_stats(results: Dict[str, Any]) -> str:
     lines.append("")
     lines.append(f"- **Total PRs:** {results.get('total_prs', 0)}")
     lines.append(f"- **Copilot-Assisted PRs:** {results.get('total_copilot_prs', 0)}")
+    # show the overall percentage of Copilot-assisted PRs:
+    total_prs = results.get('total_prs', 0)
+    total_copilot_prs = results.get('total_copilot_prs', 0)
+    copilot_pct = round((total_copilot_prs / total_prs * 100) if total_prs > 0 else 0, 2)
+    lines.append(f"- **Copilot Usage:** {copilot_pct}%")
     
     return '\n'.join(lines)
 
