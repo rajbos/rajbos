@@ -333,8 +333,12 @@ def main():
         
         # Generate trend data table
         trend_table = generate_trend_data_table(weekly_data)
-        write_to_step_summary("### 📊 Pull Request Trends Data")
+        write_to_step_summary("<details>")
+        write_to_step_summary("<summary>📊 Pull Request Trends Data</summary>")
+        write_to_step_summary("")
         write_to_step_summary(trend_table)
+        write_to_step_summary("")
+        write_to_step_summary("</details>")
         
         # Generate percentage chart
         percentage_chart = generate_percentage_chart(weekly_data)
@@ -344,8 +348,12 @@ def main():
         
         # Generate percentage data table
         percentage_table = generate_percentage_data_table(weekly_data)
-        write_to_step_summary("### 📊 Usage Percentage Data")
+        write_to_step_summary("<details>")
+        write_to_step_summary("<summary>📊 Usage Percentage Data</summary>")
+        write_to_step_summary("")
         write_to_step_summary(percentage_table)
+        write_to_step_summary("")
+        write_to_step_summary("</details>")
         
         # Generate repository breakdown chart (only if analyzing all repos)
         analyzed_repo = results.get('analyzed_repository', '')
@@ -357,8 +365,12 @@ def main():
             
             # Generate repository data table
             repo_table = generate_repository_data_table(weekly_data)
-            write_to_step_summary("### 📊 Repository Activity Data")
+            write_to_step_summary("<details>")
+            write_to_step_summary("<summary>📊 Repository Activity Data</summary>")
+            write_to_step_summary("")
             write_to_step_summary(repo_table)
+            write_to_step_summary("")
+            write_to_step_summary("</details>")
         
         print("Mermaid charts generated successfully!")
         
