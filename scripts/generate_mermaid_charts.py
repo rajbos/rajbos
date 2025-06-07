@@ -79,10 +79,6 @@ def generate_trend_chart(weekly_data: Dict[str, Any]) -> str:
     copilot_prs = [str(weekly_data[week]['copilot_assisted_prs']) for week in sorted_weeks]
     chart_lines.append('    line "GitHub Copilot Assisted" [' + ', '.join(copilot_prs) + ']')
     
-    # Dependabot PRs line
-    dependabot_prs = [str(weekly_data[week].get('dependabot_prs', 0)) for week in sorted_weeks]
-    chart_lines.append('    line "Dependabot Automated" [' + ', '.join(dependabot_prs) + ']')
-    
     chart_lines.append("```")
     
     # Add legend explanation
@@ -91,7 +87,6 @@ def generate_trend_chart(weekly_data: Dict[str, Any]) -> str:
         "**Legend:**",
         "- 📈 **Total Pull Requests**: All PRs created during each week",
         "- 🤖 **GitHub Copilot Assisted**: PRs that included AI-generated code contributions",
-        "- ⚙️ **Dependabot Automated**: PRs automatically created by Dependabot for dependency updates"
     ]
     
     return '\n'.join(chart_lines + legend_explanation)
@@ -188,15 +183,14 @@ def generate_trend_data_table(weekly_data: Dict[str, Any]) -> str:
     sorted_weeks = sorted(weekly_data.keys(), key=parse_week_key)
     
     lines = []
-    lines.append("| Week | Total PRs | Copilot-Assisted PRs | Dependabot PRs |")
-    lines.append("|------|-----------|---------------------|----------------|")
+    lines.append("| Week | Total PRs | Copilot-Assisted PRs |")
+    lines.append("|------|-----------|---------------------|")
     
     for week in sorted_weeks:
         data = weekly_data[week]
         total_prs = data['total_prs']
         copilot_prs = data['copilot_assisted_prs']
-        dependabot_prs = data.get('dependabot_prs', 0)
-        lines.append(f"| {week} | {total_prs} | {copilot_prs} | {dependabot_prs} |")
+        lines.append(f"| {week} | {total_prs} | {copilot_prs} |")
     
     return '\n'.join(lines)
 
@@ -269,24 +263,6 @@ def generate_summary_stats(results: Dict[str, Any]) -> str:
     lines.append("")
     lines.append(f"- **Total PRs:** {results.get('total_prs', 0)}")
     lines.append(f"- **Copilot-Assisted PRs:** {results.get('total_copilot_prs', 0)}")
-    lines.append(f"- **Dependabot PRs:** {results.get('total_dependabot_prs', 0)}")
-    
-    if results.get('total_prs', 0) > 0:
-        # Calculate copilot percentage excluding dependabot PRs from denominator
-        total_non_dependabot_prs = results.get('total_prs', 0) - results.get('total_dependabot_prs', 0)
-        if total_non_dependabot_prs > 0:
-            overall_copilot_percentage = (results.get('total_copilot_prs', 0) / total_non_dependabot_prs) * 100
-            lines.append(f"- **Total PRs - Dependabot PRs:** {results.get('total_prs', 0)} - {results.get('total_dependabot_prs', 0)} = {total_non_dependabot_prs}")
-            lines.append(f"- **Overall Copilot Usage on PRs (excluding Dependabot):** {overall_copilot_percentage:.1f}%")
-        else:
-            lines.append(f"- **Total PRs - Dependabot PRs:** {results.get('total_prs', 0)} - {results.get('total_dependabot_prs', 0)} = 0")
-            lines.append(f"- **Overall Copilot Usage on PRs (excluding Dependabot):** 0% (no non-Dependabot PRs)")
-        # Keep dependabot percentage calculated against total PRs
-        overall_dependabot_percentage = (results.get('total_dependabot_prs', 0) / results.get('total_prs', 1)) * 100
-        lines.append(f"- **Dependabot Usage compared to total PRs:** {overall_dependabot_percentage:.1f}%")
-    else:
-        lines.append("- **Overall Copilot Usage on PRs (excluding Dependabot):** 0%")
-        lines.append("- **Dependabot Usage compared to total PRs:** 0%")
     
     return '\n'.join(lines)
 
@@ -322,7 +298,7 @@ def main():
         # Generate trend chart
         trend_chart = generate_trend_chart(weekly_data)
         write_to_step_summary("## 📈 Pull Request Trends")
-        write_to_step_summary("*This chart shows the weekly trend of pull requests categorized by type (total, Copilot-assisted, and Dependabot-automated).*")
+        write_to_step_summary("*This chart shows the weekly trend of pull requests categorized by type (Total and Copilot-assisted).*")
         write_to_step_summary(trend_chart)
         
         # Generate trend data table
