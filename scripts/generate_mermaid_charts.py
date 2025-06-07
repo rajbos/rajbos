@@ -92,6 +92,60 @@ def generate_trend_chart(weekly_data: Dict[str, Any]) -> str:
     return '\n'.join(chart_lines + legend_explanation)
 
 
+def generate_copilot_types_chart(weekly_data: Dict[str, Any]) -> str:
+    """Generate stacked bar chart showing Copilot assistance types over time."""
+    if not weekly_data:
+        return "No data available for Copilot types chart"
+    
+    # Sort weeks chronologically
+    sorted_weeks = sorted(weekly_data.keys(), key=parse_week_key)
+    
+    # Check if there's any Copilot data
+    has_copilot_data = any(
+        weekly_data[week].get('copilot_review_prs', 0) > 0 or 
+        weekly_data[week].get('copilot_agent_prs', 0) > 0
+        for week in sorted_weeks
+    )
+    
+    if not has_copilot_data:
+        return "No Copilot assistance data available for this period"
+    
+    # Generate chart data
+    chart_lines = []
+    chart_lines.append("```mermaid")
+    chart_lines.append("xychart-beta")
+    chart_lines.append('    title "GitHub Copilot Assistance Types by Week"')
+    chart_lines.append('    x-axis [' + ', '.join(f'"{format_week_for_display(week)}"' for week in sorted_weeks) + ']')
+    
+    # Calculate max value for y-axis
+    max_value = max(
+        weekly_data[week].get('copilot_review_prs', 0) + weekly_data[week].get('copilot_agent_prs', 0)
+        for week in sorted_weeks
+    )
+    chart_lines.append('    y-axis "Number of PRs" 0 --> ' + str(max_value + 2))
+    
+    # Coding Review data
+    review_prs = [str(weekly_data[week].get('copilot_review_prs', 0)) for week in sorted_weeks]
+    chart_lines.append('    bar "Coding Review" [' + ', '.join(review_prs) + ']')
+    
+    # Coding Agent data
+    agent_prs = [str(weekly_data[week].get('copilot_agent_prs', 0)) for week in sorted_weeks]
+    chart_lines.append('    bar "Coding Agent" [' + ', '.join(agent_prs) + ']')
+    
+    chart_lines.append("```")
+    
+    # Add legend explanation
+    legend_explanation = [
+        "",
+        "**Legend:**",
+        "- 📝 **Coding Review**: PRs where Copilot was used for code review assistance",
+        "- 🤖 **Coding Agent**: PRs where Copilot was used for code generation/development",
+        "- **Stacked View**: Each bar shows the breakdown of Copilot assistance types per week"
+    ]
+    
+    return '\n'.join(chart_lines + legend_explanation)
+
+
 def generate_percentage_chart(weekly_data: Dict[str, Any]) -> str:
     """Generate mermaid line chart showing Copilot percentage trends."""
     if not weekly_data:
@@ -195,6 +249,30 @@ def generate_trend_data_table(weekly_data: Dict[str, Any]) -> str:
     return '\n'.join(lines)
 
 
+def generate_copilot_types_data_table(weekly_data: Dict[str, Any]) -> str:
+    """Generate markdown table showing Copilot assistance types data."""
+    if not weekly_data:
+        return "No data available for Copilot types table"
+    
+    # Sort weeks chronologically
+    sorted_weeks = sorted(weekly_data.keys(), key=parse_week_key)
+    
+    lines = []
+    lines.append("| Week | Total PRs | Coding Review | Coding Agent | Review % | Agent % |")
+    lines.append("|------|-----------|---------------|--------------|----------|---------|")
+    
+    for week in sorted_weeks:
+        data = weekly_data[week]
+        total_prs = data['total_prs']
+        review_prs = data.get('copilot_review_prs', 0)
+        agent_prs = data.get('copilot_agent_prs', 0)
+        review_pct = data.get('copilot_review_percentage', 0)
+        agent_pct = data.get('copilot_agent_percentage', 0)
+        lines.append(f"| {week} | {total_prs} | {review_prs} | {agent_prs} | {review_pct}% | {agent_pct}% |")
+    
+    return '\n'.join(lines)
+
+
 def generate_percentage_data_table(weekly_data: Dict[str, Any]) -> str:
     """Generate markdown table showing percentage trends data."""
     if not weekly_data:
@@ -268,11 +346,22 @@ def generate_summary_stats(results: Dict[str, Any]) -> str:
     lines.append("")
     lines.append(f"- **Total PRs:** {results.get('total_prs', 0)}")
     lines.append(f"- **Copilot-Assisted PRs:** {results.get('total_copilot_prs', 0)}")
+    lines.append(f"  - **Coding Review:** {results.get('total_copilot_review_prs', 0)}")
+    lines.append(f"  - **Coding Agent:** {results.get('total_copilot_agent_prs', 0)}")
+    
     # show the overall percentage of Copilot-assisted PRs:
     total_prs = results.get('total_prs', 0)
     total_copilot_prs = results.get('total_copilot_prs', 0)
+    total_copilot_review_prs = results.get('total_copilot_review_prs', 0)
+    total_copilot_agent_prs = results.get('total_copilot_agent_prs', 0)
+    
     copilot_pct = round((total_copilot_prs / total_prs * 100) if total_prs > 0 else 0, 2)
+    review_pct = round((total_copilot_review_prs / total_prs * 100) if total_prs > 0 else 0, 2)
+    agent_pct = round((total_copilot_agent_prs / total_prs * 100) if total_prs > 0 else 0, 2)
+    
     lines.append(f"- **Copilot Usage:** {copilot_pct}%")
+    lines.append(f"  - **Review Assistance:** {review_pct}%")
+    lines.append(f"  - **Agent Assistance:** {agent_pct}%")
     
     return '\n'.join(lines)
 
@@ -332,6 +421,21 @@ def main():
         write_to_step_summary("<summary>📊 Copilot Usage Percentage Data</summary>")
         write_to_step_summary("")
         write_to_step_summary(percentage_table)
+        write_to_step_summary("")
+        write_to_step_summary("</details>")
+        
+        # Generate Copilot assistance types chart
+        copilot_types_chart = generate_copilot_types_chart(weekly_data)
+        write_to_step_summary("## 🤖📝 GitHub Copilot Assistance Types")
+        write_to_step_summary("*This chart shows the breakdown of Copilot assistance by type: Coding Review vs Coding Agent.*")
+        write_to_step_summary(copilot_types_chart)
+        
+        # Generate Copilot types data table
+        copilot_types_table = generate_copilot_types_data_table(weekly_data)
+        write_to_step_summary("<details>")
+        write_to_step_summary("<summary>📊 Copilot Assistance Types Data</summary>")
+        write_to_step_summary("")
+        write_to_step_summary(copilot_types_table)
         write_to_step_summary("")
         write_to_step_summary("</details>")
         
