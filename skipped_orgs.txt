@@ -7,9 +7,14 @@
 # 2. Selective format - skip organization except for specific repositories:
 #    org-name:include:repo1,repo2,repo3
 #
-# Examples:
+# Filter out complete org:
 LinkedInLearning
 githubpartners
+ps-developers-sandbox
+rajbos-actions-test
+ps-migration-sandbox
+actions-marketplace-validations
+mcp-research
 
-# Example of selective filtering (as requested in issue):
+# Selective filtering (as requested in issue):
 mcp-research:include:mcp-security-scans
