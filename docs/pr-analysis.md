@@ -17,7 +17,8 @@ This repository includes a GitHub Actions workflow and Python scripts to analyze
 
 The script analyzes pull requests and provides:
 
-1. **Multi-Repository Analysis**: Analyzes PRs across all user repositories and organization repositories where the user has been involved
+1. **HTTP Request Caching**: All GitHub API requests are cached for 4 hours using SQLite backend to reduce API calls and improve performance
+2. **Multi-Repository Analysis**: Analyzes PRs across all user repositories and organization repositories where the user has been involved
 2. **Organization Support**: Automatically discovers and analyzes PRs from all organizations the user belongs to
 2. **Pull Request Retrieval**: Fetches all PRs from the past 3 months using GitHub's REST API
 3. **Collaborator Analysis**: Identifies all collaborators on PRs
@@ -35,6 +36,41 @@ By default, the script now analyzes **all repositories** for the authenticated u
 - Fetches repositories from each organization
 - Filters PRs to only include those where the user was involved (as author, assignee, or reviewer)
 - Displays organization repositories with full path (e.g., `org-name/repo-name`)
+- Supports flexible organization filtering via `skipped_orgs.txt` configuration file
+
+#### Organization Filtering
+
+The script supports flexible organization filtering through the `skipped_orgs.txt` configuration file, which supports two filtering modes:
+
+**1. Complete Organization Exclusion:**
+```
+# Skip entire organizations
+LinkedInLearning
+githubpartners
+```
+
+**2. Selective Repository Inclusion:**
+```
+# Skip organization except for specific repositories
+mcp-research:include:mcp-security-scans
+test-org:include:repo1,repo2,repo3
+```
+
+The selective filtering format allows you to exclude an entire organization while still analyzing specific repositories within that organization. This is useful when you want to focus on particular projects within a large organization.
+
+#### HTTP Request Caching
+
+The script implements efficient HTTP request caching to improve performance and reduce GitHub API calls:
+
+- **Cache Backend**: Uses SQLite database for persistent storage (`.http_cache/github_api_cache.sqlite`)
+- **Cache Duration**: Responses are cached for 4 hours (configurable in `_setup_cache()` method)
+- **Cached Methods**: Only GET requests are cached (POST/PUT/DELETE are never cached)
+- **Cached Status Codes**: Caches HTTP 200 (success) and 404 (not found) responses  
+- **Artifact Persistence**: Cache database is uploaded/downloaded as GitHub Artifact to persist between workflow runs
+- **Stale Cache**: Returns cached responses even if they're expired when new requests fail
+- **Cache Location**: Stored in `.http_cache/` directory (excluded from git via `.gitignore`)
+
+This caching reduces redundant API calls, especially for repository metadata and pull request data that doesn't change frequently.
 
 #### Copilot Detection Methods
 
@@ -82,6 +118,7 @@ The workflow:
 - **Schedule**: Runs every Monday at 9:00 AM UTC
 - **Manual Trigger**: Can be triggered manually with optional output format selection
 - **Authentication**: Uses Personal Access Token (`secrets.GITHUB_PAT`) for full access
+- **HTTP Cache**: Downloads and uploads cache artifacts to persist between runs
 - **Artifacts**: Uploads analysis results with 30-day retention
 - **Visualization**: Generates and displays mermaid charts in step summary
 
@@ -89,7 +126,9 @@ The workflow:
 
 - Automatic Python environment setup
 - Dependency installation from `requirements.txt`
+- HTTP cache download (if available from previous runs)
 - Multi-repository PR analysis
+- HTTP cache upload for future runs
 - Mermaid chart generation and display
 - Artifact upload for both JSON and CSV formats
 

@@ -43,6 +43,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
+      - name: Cache HTTP requests
+        uses: actions/cache@v4
+        with:
+          path: .http_cache
+          key: http-cache-${{ hashFiles('requirements.txt') }}-${{ github.run_number }}
+          restore-keys: |
+            http-cache-${{ hashFiles('requirements.txt') }}-
+            http-cache-
+      
       - name: Run PR analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
