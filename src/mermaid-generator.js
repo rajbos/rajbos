@@ -373,6 +373,7 @@ export async function generateMermaidCharts() {
         // Generate trend chart
         const trendChart = generateTrendChart(weeklyData);
         await writeToStepSummary("## 📈 Pull Request Trends");
+        await writeToStepSummary("");
         await writeToStepSummary("*This chart displays both total PR volume and Copilot-assisted PRs over time.*");
         await writeToStepSummary(trendChart);
         
@@ -388,6 +389,7 @@ export async function generateMermaidCharts() {
         // Generate percentage chart
         const percentageChart = generatePercentageChart(weeklyData);
         await writeToStepSummary("## 🤖 GitHub Copilot Usage Trends");
+        await writeToStepSummary("");
         await writeToStepSummary("*This chart displays the adoption rate as percentage of total PRs over time.*");
         await writeToStepSummary(percentageChart);
         
@@ -403,6 +405,7 @@ export async function generateMermaidCharts() {
         // Generate Copilot assistance types chart
         const copilotTypesChart = generateCopilotTypesChart(weeklyData);
         await writeToStepSummary("## 🤖📝 GitHub Copilot Assistance Types");
+        await writeToStepSummary("");
         await writeToStepSummary("*This chart breaks down Copilot usage by assistance type: coding review vs. coding agent.*");
         await writeToStepSummary(copilotTypesChart);
         

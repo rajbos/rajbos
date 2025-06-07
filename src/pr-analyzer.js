@@ -510,6 +510,13 @@ export class GitHubPRAnalyzer {
                 }
                 
                 for (const pr of pulls) {
+                    // Skip Dependabot PRs from analysis
+                    const isDependabot = this.detectDependabotPR(pr);
+                    if (isDependabot) {
+                        totalDependabotPRs++;
+                        continue;
+                    }
+                    
                     const createdAt = new Date(pr.created_at);
                     const weekKey = this.getWeekKey(createdAt);
                     
@@ -519,7 +526,6 @@ export class GitHubPRAnalyzer {
                             copilotAssistedPRs: 0,
                             copilotReviewPRs: 0,
                             copilotAgentPRs: 0,
-                            dependabotPRs: 0,
                             collaborators: new Set(),
                             repositories: new Set(),
                             pullRequests: []
@@ -539,7 +545,6 @@ export class GitHubPRAnalyzer {
                     
                     // Detect Copilot collaboration
                     const copilotType = await this.detectCopilotCollaboration(pr);
-                    const isDependabot = this.detectDependabotPR(pr);
                     
                     let copilotAssisted = false;
                     if (copilotType === 'review') {
@@ -557,12 +562,7 @@ export class GitHubPRAnalyzer {
                         totalCopilotPRs++;
                     }
                     
-                    if (isDependabot) {
-                        weeklyData[weekKey].dependabotPRs++;
-                        totalDependabotPRs++;
-                    }
-                    
-                    // Store PR details
+                    // Store PR details (Dependabot PRs are excluded)
                     weeklyData[weekKey].pullRequests.push({
                         number: pr.number,
                         title: pr.title,
@@ -571,7 +571,7 @@ export class GitHubPRAnalyzer {
                         createdAt: pr.created_at,
                         copilotAssisted: copilotAssisted,
                         copilotType: copilotType,
-                        dependabotPr: isDependabot,
+                        dependabotPr: false, // Always false since we exclude Dependabot PRs
                         url: pr.html_url
                     });
                 }
@@ -580,13 +580,19 @@ export class GitHubPRAnalyzer {
             }
         }
         
+        // Log summary including Dependabot exclusions
+        console.log(`\nAnalysis complete:`);
+        console.log(`- Total PRs analyzed: ${totalPRs}`);
+        console.log(`- Dependabot PRs excluded: ${totalDependabotPRs}`);
+        console.log(`- Copilot-assisted PRs: ${totalCopilotPRs}`);
+        console.log(`- Repositories analyzed: ${totalRepositories}`);
+        
         // Calculate percentages and prepare final data
         const finalWeeklyData = {};
         for (const [weekKey, data] of Object.entries(weeklyData)) {
             const copilotPercentage = data.totalPRs > 0 ? (data.copilotAssistedPRs / data.totalPRs * 100) : 0;
             const copilotReviewPercentage = data.totalPRs > 0 ? (data.copilotReviewPRs / data.totalPRs * 100) : 0;
             const copilotAgentPercentage = data.totalPRs > 0 ? (data.copilotAgentPRs / data.totalPRs * 100) : 0;
-            const dependabotPercentage = data.totalPRs > 0 ? (data.dependabotPRs / data.totalPRs * 100) : 0;
             
             finalWeeklyData[weekKey] = {
                 totalPRs: data.totalPRs,
@@ -596,8 +602,6 @@ export class GitHubPRAnalyzer {
                 copilotPercentage: Math.round(copilotPercentage * 100) / 100,
                 copilotReviewPercentage: Math.round(copilotReviewPercentage * 100) / 100,
                 copilotAgentPercentage: Math.round(copilotAgentPercentage * 100) / 100,
-                dependabotPRs: data.dependabotPRs,
-                dependabotPercentage: Math.round(dependabotPercentage * 100) / 100,
                 uniqueCollaborators: data.collaborators.size,
                 collaborators: Array.from(data.collaborators),
                 repositories: Array.from(data.repositories),
