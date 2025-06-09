@@ -28,6 +28,20 @@ The script analyzes pull requests and provides:
 9. **Dependabot Detection**: Identifies PRs created by Dependabot for dependency updates
 10. **Output Formats**: Results in JSON or CSV format
 11. **Repository Filtering**: Automatically skips archived and disabled repositories to focus analysis on active repositories
+12. **Commit Count Analysis**: For Copilot-assisted PRs, analyzes and reports the breakdown of commits by user vs Copilot
+
+#### Commit Count Analysis
+
+For each Copilot-assisted PR, the system analyzes individual commits to provide detailed insights:
+
+- **Total Commits**: Count of all commits in the PR
+- **User Commits**: Commits authored by the analyzed user without Copilot assistance
+- **Copilot Commits**: Commits that show evidence of Copilot collaboration, including:
+  - Commits with co-authored-by Copilot attribution
+  - Commits authored by Copilot bots
+  - Commits with commit messages mentioning Copilot
+
+This analysis provides transparency into the collaboration patterns between users and GitHub Copilot within pull requests.
 
 #### Repository Filtering
 
@@ -208,7 +222,12 @@ The workflow:
           "copilot_assisted": true,
           "copilot_type": "agent",
           "dependabot_pr": false,
-          "url": "https://github.com/rajbos/repo1/pull/1"
+          "url": "https://github.com/rajbos/repo1/pull/1",
+          "commit_counts": {
+            "total_commits": 5,
+            "user_commits": 3,
+            "copilot_commits": 2
+          }
         }
       ]
     }

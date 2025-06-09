@@ -318,6 +318,50 @@ export class GitHubPRAnalyzer {
     }
 
     /**
+     * Analyze commits in a PR to count commits by user vs Copilot.
+     */
+    analyzeCommitCounts(commits) {
+        let totalCommits = commits.length;
+        let userCommits = 0;
+        let copilotCommits = 0;
+        
+        for (const commit of commits) {
+            const author = commit.commit?.author?.name || '';
+            const committer = commit.commit?.committer?.name || '';
+            const message = (commit.commit?.message || '').toLowerCase();
+            
+            // Check if this is a Copilot-assisted commit
+            const isCopilotCommit = 
+                // Co-authored by Copilot
+                message.includes('co-authored-by:') && message.includes('copilot') ||
+                // Commit by Copilot
+                author.toLowerCase().includes('copilot') ||
+                committer.toLowerCase().includes('copilot') ||
+                // Commit message mentions Copilot
+                message.includes('copilot');
+            
+            if (isCopilotCommit) {
+                copilotCommits++;
+            } else {
+                // Check if commit is by the analyzed user
+                const commitAuthor = commit.author?.login || author;
+                if (commitAuthor === this.owner || author.includes(this.owner)) {
+                    userCommits++;
+                } else {
+                    // Count as user commit if not explicitly Copilot-related
+                    userCommits++;
+                }
+            }
+        }
+        
+        return {
+            totalCommits,
+            userCommits,
+            copilotCommits
+        };
+    }
+
+    /**
      * Detect GitHub Copilot collaboration and categorize by assistance type.
      */
     async detectCopilotCollaboration(pr) {
@@ -562,8 +606,19 @@ export class GitHubPRAnalyzer {
                         totalCopilotPRs++;
                     }
                     
+                    // Analyze commit counts for Copilot PRs
+                    let commitCounts = null;
+                    if (copilotAssisted) {
+                        try {
+                            const commits = await this.getPRCommits(pr.base.repo.full_name, pr.number);
+                            commitCounts = this.analyzeCommitCounts(commits);
+                        } catch (error) {
+                            console.log(`Warning: Could not analyze commits for Copilot PR #${pr.number}: ${error.message}`);
+                        }
+                    }
+                    
                     // Store PR details (Dependabot PRs are excluded)
-                    weeklyData[weekKey].pullRequests.push({
+                    const prDetails = {
                         number: pr.number,
                         title: pr.title,
                         author: pr.user ? pr.user.login : 'unknown',
@@ -573,7 +628,14 @@ export class GitHubPRAnalyzer {
                         copilotType: copilotType,
                         dependabotPr: false, // Always false since we exclude Dependabot PRs
                         url: pr.html_url
-                    });
+                    };
+                    
+                    // Add commit counts for Copilot PRs
+                    if (commitCounts) {
+                        prDetails.commitCounts = commitCounts;
+                    }
+                    
+                    weeklyData[weekKey].pullRequests.push(prDetails);
                 }
             } catch (error) {
                 console.error(`Error analyzing repository [${maskedRepoName}]: ${error.message}`);

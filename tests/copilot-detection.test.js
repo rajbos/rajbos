@@ -255,4 +255,74 @@ describe('GitHubPRAnalyzer - Copilot Detection', () => {
         const result = analyzer.detectDependabotPR(regularPR);
         expect(result).toBe(false);
     });
+    
+    test('should analyze commit counts correctly', () => {
+        const commits = [
+            {
+                commit: {
+                    author: { name: 'rajbos' },
+                    committer: { name: 'GitHub' },
+                    message: 'Add new feature'
+                },
+                author: { login: 'rajbos' }
+            },
+            {
+                commit: {
+                    author: { name: 'GitHub Copilot' },
+                    committer: { name: 'GitHub' },
+                    message: 'Fix bug with copilot assistance'
+                },
+                author: { login: 'rajbos' }
+            },
+            {
+                commit: {
+                    author: { name: 'rajbos' },
+                    committer: { name: 'GitHub' },
+                    message: 'Update README\n\nCo-authored-by: GitHub Copilot <noreply@github.com>'
+                },
+                author: { login: 'rajbos' }
+            },
+            {
+                commit: {
+                    author: { name: 'rajbos' },
+                    committer: { name: 'GitHub' },
+                    message: 'Regular commit without assistance'
+                },
+                author: { login: 'rajbos' }
+            }
+        ];
+        
+        const result = analyzer.analyzeCommitCounts(commits);
+        
+        expect(result.totalCommits).toBe(4);
+        expect(result.copilotCommits).toBe(2); // One with Copilot author, one with co-authored-by
+        expect(result.userCommits).toBe(2); // Two regular commits
+    });
+    
+    test('should handle empty commit list', () => {
+        const result = analyzer.analyzeCommitCounts([]);
+        
+        expect(result.totalCommits).toBe(0);
+        expect(result.userCommits).toBe(0);
+        expect(result.copilotCommits).toBe(0);
+    });
+    
+    test('should detect copilot commits by author name', () => {
+        const commits = [
+            {
+                commit: {
+                    author: { name: 'copilot[bot]' },
+                    committer: { name: 'GitHub' },
+                    message: 'Generated code'
+                },
+                author: { login: 'copilot[bot]' }
+            }
+        ];
+        
+        const result = analyzer.analyzeCommitCounts(commits);
+        
+        expect(result.totalCommits).toBe(1);
+        expect(result.copilotCommits).toBe(1);
+        expect(result.userCommits).toBe(0);
+    });
 });
