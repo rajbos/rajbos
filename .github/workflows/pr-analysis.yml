@@ -22,7 +22,10 @@ name: PR Analysis with Copilot Detection
   push:
     paths:
       - .github/workflows/pr-analysis.yml
-      - "scripts/*"
+      - "src/*"
+      - "tests/*"
+      - package.json
+      - package-lock.json
       
 jobs:
   analyze-prs:
@@ -37,24 +40,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          node-version: '18'
+          cache: 'npm'
       
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          npm ci
       
       - name: Cache HTTP requests
         uses: actions/cache@v4
         with:
           path: .http_cache
-          key: http-cache-${{ hashFiles('requirements.txt') }}-${{ github.run_number }}
+          key: http-cache-${{ hashFiles('package-lock.json') }}-${{ github.run_number }}
           restore-keys: |
-            http-cache-${{ hashFiles('requirements.txt') }}-
+            http-cache-${{ hashFiles('package-lock.json') }}-
             http-cache-
       
       - name: Clean cache directory
@@ -71,12 +73,12 @@ jobs:
           ANALYZE_ALL_REPOS: 'true'
           CLEAN_CACHE: ${{ github.event.inputs.clean_cache || 'false' }}
         run: |
-          python scripts/pr_analysis.py
+          npm run analyze
       
       - name: Generate Mermaid Charts
         if: env.OUTPUT_FORMAT == 'json' || github.event.inputs.output_format != 'csv'
         run: |
-          python scripts/generate_mermaid_charts.py
+          npm run charts
       
       - name: Upload analysis results
         uses: actions/upload-artifact@v4
