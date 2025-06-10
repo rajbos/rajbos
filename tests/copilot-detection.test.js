@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import { GitHubPRAnalyzer } from '../src/pr-analyzer.js';
+import { calculateCommitStatsPerWeek, generateCommitStatsChart, generateCommitStatsDataTable } from '../src/mermaid-generator.js';
 
 describe('GitHubPRAnalyzer - Copilot Detection', () => {
     let analyzer;
@@ -324,5 +325,126 @@ describe('GitHubPRAnalyzer - Copilot Detection', () => {
         expect(result.totalCommits).toBe(1);
         expect(result.copilotCommits).toBe(1);
         expect(result.userCommits).toBe(0);
+    });
+});
+
+describe('Commit Statistics Functions', () => {
+    test('should calculate commit statistics per week correctly', () => {
+        const weeklyData = {
+            '2024-W01': {
+                pullRequests: [
+                    {
+                        copilotAssisted: true,
+                        commitCounts: { totalCommits: 5, userCommits: 3, copilotCommits: 2 }
+                    },
+                    {
+                        copilotAssisted: true,
+                        commitCounts: { totalCommits: 3, userCommits: 2, copilotCommits: 1 }
+                    },
+                    {
+                        copilotAssisted: false,
+                        commitCounts: { totalCommits: 2, userCommits: 2, copilotCommits: 0 }
+                    }
+                ]
+            },
+            '2024-W02': {
+                pullRequests: [
+                    {
+                        copilotAssisted: true,
+                        commitCounts: { totalCommits: 7, userCommits: 4, copilotCommits: 3 }
+                    }
+                ]
+            }
+        };
+        
+        const result = calculateCommitStatsPerWeek(weeklyData);
+        
+        expect(result['2024-W01']).toEqual({
+            prCount: 2,
+            totalCommits: { min: 3, max: 5, avg: 4 },
+            userCommits: { min: 2, max: 3, avg: 2.5 },
+            copilotCommits: { min: 1, max: 2, avg: 1.5 }
+        });
+        
+        expect(result['2024-W02']).toEqual({
+            prCount: 1,
+            totalCommits: { min: 7, max: 7, avg: 7 },
+            userCommits: { min: 4, max: 4, avg: 4 },
+            copilotCommits: { min: 3, max: 3, avg: 3 }
+        });
+    });
+    
+    test('should handle weeks with no copilot PRs', () => {
+        const weeklyData = {
+            '2024-W01': {
+                pullRequests: [
+                    {
+                        copilotAssisted: false,
+                        commitCounts: { totalCommits: 2, userCommits: 2, copilotCommits: 0 }
+                    }
+                ]
+            }
+        };
+        
+        const result = calculateCommitStatsPerWeek(weeklyData);
+        
+        expect(result).toEqual({});
+    });
+    
+    test('should generate commit stats chart correctly', () => {
+        const weeklyData = {
+            '2024-W01': {
+                pullRequests: [
+                    {
+                        copilotAssisted: true,
+                        commitCounts: { totalCommits: 5, userCommits: 3, copilotCommits: 2 }
+                    }
+                ]
+            }
+        };
+        
+        const result = generateCommitStatsChart(weeklyData);
+        
+        expect(result).toContain('```mermaid');
+        expect(result).toContain('xychart-beta');
+        expect(result).toContain('title "Copilot PR Commit Count Statistics by Week"');
+        expect(result).toContain('line "Min Commits" [5]');
+        expect(result).toContain('line "Avg Commits" [5]');
+        expect(result).toContain('line "Max Commits" [5]');
+        expect(result).toContain('**Min Commits**');
+        expect(result).toContain('**Avg Commits**');
+        expect(result).toContain('**Max Commits**');
+    });
+    
+    test('should handle empty data for commit stats chart', () => {
+        const result = generateCommitStatsChart({});
+        expect(result).toBe("No data available for commit statistics chart");
+    });
+    
+    test('should generate commit stats data table correctly', () => {
+        const weeklyData = {
+            '2024-W01': {
+                pullRequests: [
+                    {
+                        copilotAssisted: true,
+                        commitCounts: { totalCommits: 5, userCommits: 3, copilotCommits: 2 }
+                    },
+                    {
+                        copilotAssisted: true,
+                        commitCounts: { totalCommits: 3, userCommits: 2, copilotCommits: 1 }
+                    }
+                ]
+            }
+        };
+        
+        const result = generateCommitStatsDataTable(weeklyData);
+        
+        expect(result).toContain('| Week | PRs | Min Commits | Avg Commits | Max Commits |');
+        expect(result).toContain('| 2024-W01 | 2 | 3 | 4 | 5 |');
+    });
+    
+    test('should handle empty data for commit stats data table', () => {
+        const result = generateCommitStatsDataTable({});
+        expect(result).toBe("No Copilot PR commit data available for table");
     });
 });

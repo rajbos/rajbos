@@ -298,6 +298,134 @@ export function generateCopilotTypesDataTable(weeklyData) {
 }
 
 /**
+ * Calculate commit count statistics per week for Copilot PRs.
+ */
+export function calculateCommitStatsPerWeek(weeklyData) {
+    const weeklyCommitStats = {};
+    
+    for (const [week, data] of Object.entries(weeklyData)) {
+        const copilotPRs = data.pullRequests.filter(pr => pr.copilotAssisted && pr.commitCounts);
+        
+        if (copilotPRs.length > 0) {
+            const totalCommitCounts = copilotPRs.map(pr => pr.commitCounts.totalCommits);
+            const userCommitCounts = copilotPRs.map(pr => pr.commitCounts.userCommits);
+            const copilotCommitCounts = copilotPRs.map(pr => pr.commitCounts.copilotCommits);
+            
+            weeklyCommitStats[week] = {
+                prCount: copilotPRs.length,
+                totalCommits: {
+                    min: Math.min(...totalCommitCounts),
+                    max: Math.max(...totalCommitCounts),
+                    avg: Math.round(totalCommitCounts.reduce((a, b) => a + b, 0) / totalCommitCounts.length * 10) / 10
+                },
+                userCommits: {
+                    min: Math.min(...userCommitCounts),
+                    max: Math.max(...userCommitCounts),
+                    avg: Math.round(userCommitCounts.reduce((a, b) => a + b, 0) / userCommitCounts.length * 10) / 10
+                },
+                copilotCommits: {
+                    min: Math.min(...copilotCommitCounts),
+                    max: Math.max(...copilotCommitCounts),
+                    avg: Math.round(copilotCommitCounts.reduce((a, b) => a + b, 0) / copilotCommitCounts.length * 10) / 10
+                }
+            };
+        }
+    }
+    
+    return weeklyCommitStats;
+}
+
+/**
+ * Generate mermaid chart showing commit count statistics for Copilot PRs.
+ */
+export function generateCommitStatsChart(weeklyData) {
+    if (!weeklyData || Object.keys(weeklyData).length === 0) {
+        return "No data available for commit statistics chart";
+    }
+    
+    const commitStats = calculateCommitStatsPerWeek(weeklyData);
+    const statsWeeks = Object.keys(commitStats);
+    
+    if (statsWeeks.length === 0) {
+        return "No Copilot PR commit data available for this period";
+    }
+    
+    // Sort weeks chronologically
+    const sortedWeeks = statsWeeks.sort((a, b) => {
+        const [yearA, weekA] = parseWeekKey(a);
+        const [yearB, weekB] = parseWeekKey(b);
+        return yearA !== yearB ? yearA - yearB : weekA - weekB;
+    });
+    
+    // Generate chart data
+    const chartLines = [];
+    chartLines.push("```mermaid");
+    chartLines.push("xychart-beta");
+    chartLines.push('    title "Copilot PR Commit Count Statistics by Week"');
+    chartLines.push('    x-axis [' + sortedWeeks.map(week => `"${formatWeekForDisplay(week)}"`).join(', ') + ']');
+    
+    // Calculate max value for y-axis
+    const maxValue = Math.max(...sortedWeeks.map(week => commitStats[week].totalCommits.max));
+    chartLines.push('    y-axis "Number of Commits" 0 --> ' + (maxValue + 2));
+    
+    // Min commits line
+    const minCommits = sortedWeeks.map(week => commitStats[week].totalCommits.min);
+    chartLines.push('    line "Min Commits" [' + minCommits.join(', ') + ']');
+    
+    // Average commits line
+    const avgCommits = sortedWeeks.map(week => commitStats[week].totalCommits.avg);
+    chartLines.push('    line "Avg Commits" [' + avgCommits.join(', ') + ']');
+    
+    // Max commits line
+    const maxCommits = sortedWeeks.map(week => commitStats[week].totalCommits.max);
+    chartLines.push('    line "Max Commits" [' + maxCommits.join(', ') + ']');
+    
+    chartLines.push("```");
+    
+    // Add legend explanation
+    const legendExplanation = [
+        "",
+        "**Legend:**",
+        "- 📉 **Min Commits**: Minimum commits per PR in Copilot PRs for each week",
+        "- 📊 **Avg Commits**: Average commits per PR in Copilot PRs for each week", 
+        "- 📈 **Max Commits**: Maximum commits per PR in Copilot PRs for each week",
+        "- **Higher averages may indicate more complex AI-assisted development**"
+    ];
+    
+    return chartLines.concat(legendExplanation).join('\n');
+}
+
+/**
+ * Generate markdown table showing commit statistics data.
+ */
+export function generateCommitStatsDataTable(weeklyData) {
+    const commitStats = calculateCommitStatsPerWeek(weeklyData);
+    const statsWeeks = Object.keys(commitStats);
+    
+    if (statsWeeks.length === 0) {
+        return "No Copilot PR commit data available for table";
+    }
+    
+    const lines = [];
+    lines.push("| Week | PRs | Min Commits | Avg Commits | Max Commits | Min User | Avg User | Max User | Min Copilot | Avg Copilot | Max Copilot |");
+    lines.push("|------|-----|-------------|-------------|-------------|----------|----------|----------|-------------|-------------|-------------|");
+    
+    // Sort weeks chronologically
+    const sortedWeeks = statsWeeks.sort((a, b) => {
+        const [yearA, weekA] = parseWeekKey(a);
+        const [yearB, weekB] = parseWeekKey(b);
+        return yearA !== yearB ? yearA - yearB : weekA - weekB;
+    });
+    
+    for (const week of sortedWeeks) {
+        const stats = commitStats[week];
+        lines.push(`| ${week} | ${stats.prCount} | ${stats.totalCommits.min} | ${stats.totalCommits.avg} | ${stats.totalCommits.max} | ${stats.userCommits.min} | ${stats.userCommits.avg} | ${stats.userCommits.max} | ${stats.copilotCommits.min} | ${stats.copilotCommits.avg} | ${stats.copilotCommits.max} |`);
+    }
+    
+    return lines.join('\n');
+}
+
+/**
  * Generate summary statistics in markdown format.
  */
 export function generateSummaryStats(results) {
@@ -417,6 +545,24 @@ export async function generateMermaidCharts() {
         await writeToStepSummary(copilotTypesTable);
         await writeToStepSummary("");
         await writeToStepSummary("</details>");
+        
+        // Generate commit statistics chart and table
+        const commitStatsChart = generateCommitStatsChart(weeklyData);
+        await writeToStepSummary("## 📊 Copilot PR Commit Count Statistics");
+        await writeToStepSummary("");
+        await writeToStepSummary("*This chart displays min/average/max commit counts per Copilot PR for each week.*");
+        await writeToStepSummary(commitStatsChart);
+        
+        // Generate commit statistics data table
+        const commitStatsTable = generateCommitStatsDataTable(weeklyData);
+        if (commitStatsTable !== "No Copilot PR commit data available for table") {
+            await writeToStepSummary("<details>");
+            await writeToStepSummary("<summary>📊 Commit Count Statistics Data</summary>");
+            await writeToStepSummary("");
+            await writeToStepSummary(commitStatsTable);
+            await writeToStepSummary("");
+            await writeToStepSummary("</details>");
+        }
         
         console.log("Mermaid charts generated successfully!");
         
