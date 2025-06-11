@@ -91,13 +91,141 @@ export class GitHubPRAnalyzer {
     }
 
     /**
+     * Make an API request with retry logic and rate limit handling.
+     * @param {Function} requestFn - Function that makes the actual API request
+     * @param {string} context - Context description for logging
+     * @param {number} maxRetries - Maximum number of retries (default: 3)
+     * @returns {Promise} - Promise that resolves to the API response
+     */
+    async _makeApiRequestWithRetry(requestFn, context = 'API request', maxRetries = 3) {
+        let lastError;
+        
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                const response = await requestFn();
+                return response;
+            } catch (error) {
+                lastError = error;
+                
+                // Don't retry on final attempt
+                if (attempt === maxRetries) {
+                    break;
+                }
+                
+                // Check if this is a retryable error
+                const shouldRetry = this._shouldRetryError(error);
+                if (!shouldRetry) {
+                    break;
+                }
+                
+                // Handle rate limiting specifically
+                if (error.response?.status === 429) {
+                    const waitTime = await this._handleRateLimit(error, context);
+                    console.log(`Rate limit hit for [${context}]. Waiting [${waitTime}ms] before retry [${attempt + 1}/${maxRetries}]`);
+                    await this._sleep(waitTime);
+                } else {
+                    // Use exponential backoff with jitter for other retryable errors
+                    const baseDelay = Math.min(1000 * Math.pow(2, attempt), 30000); // Cap at 30 seconds
+                    const jitter = Math.random() * 0.1 * baseDelay; // 10% jitter
+                    const delay = baseDelay + jitter;
+                    
+                    console.log(`Retrying [${context}] after error: [${error.message}]. Attempt [${attempt + 1}/${maxRetries}] in [${Math.round(delay)}ms]`);
+                    await this._sleep(delay);
+                }
+            }
+        }
+        
+        // All retries exhausted, throw the last error
+        throw lastError;
+    }
+
+    /**
+     * Determine if an error should trigger a retry.
+     * @param {Error} error - The error to check
+     * @returns {boolean} - True if the error is retryable
+     */
+    _shouldRetryError(error) {
+        // Network errors (no response)
+        if (!error.response) {
+            return true;
+        }
+        
+        const status = error.response.status;
+        
+        // Retryable HTTP status codes
+        if (status === 429) { // Rate limit
+            return true;
+        }
+        if (status >= 500) { // Server errors
+            return true;
+        }
+        if (status === 408) { // Request timeout
+            return true;
+        }
+        if (status === 409) { // Conflict (may be temporary)
+            return true;
+        }
+        
+        // Don't retry client errors (4xx except the above)
+        if (status >= 400 && status < 500) {
+            return false;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Handle rate limiting by reading response headers.
+     * @param {Error} error - The rate limit error
+     * @param {string} context - Context for logging
+     * @returns {number} - Time to wait in milliseconds
+     */
+    async _handleRateLimit(error, context) {
+        const headers = error.response?.headers || {};
+        
+        // Check for GitHub's rate limit headers
+        const remaining = parseInt(headers['x-ratelimit-remaining'] || '0');
+        const resetTimestamp = parseInt(headers['x-ratelimit-reset'] || '0');
+        
+        if (resetTimestamp > 0) {
+            const now = Math.floor(Date.now() / 1000);
+            const waitTime = Math.max(0, (resetTimestamp - now) * 1000) + 1000; // Add 1 second buffer
+            
+            console.log(`Rate limit info for [${context}]: remaining=[${remaining}], reset=[${new Date(resetTimestamp * 1000).toISOString()}]`);
+            return Math.min(waitTime, 300000); // Cap at 5 minutes
+        }
+        
+        // Check for Retry-After header
+        const retryAfter = headers['retry-after'];
+        if (retryAfter) {
+            const waitTime = parseInt(retryAfter) * 1000; // Convert seconds to milliseconds
+            return Math.min(waitTime, 300000); // Cap at 5 minutes
+        }
+        
+        // Default backoff if no specific headers
+        return 60000; // 1 minute default
+    }
+
+    /**
+     * Sleep for the specified number of milliseconds.
+     * @param {number} ms - Milliseconds to sleep
+     * @returns {Promise} - Promise that resolves after the delay
+     */
+    _sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
      * Get current rate limit information from GitHub API (non-cached call).
      */
     async getRateLimitInfo() {
         try {
-            const response = await axios.get(`${this.baseUrl}/rate_limit`, {
-                headers: this.headers
-            });
+            const response = await this._makeApiRequestWithRetry(
+                () => axios.get(`${this.baseUrl}/rate_limit`, {
+                    headers: this.headers
+                }),
+                'rate limit info'
+            );
             
             const rateLimitData = response.data;
             const resetTimestamp = rateLimitData.rate.reset;
@@ -137,14 +265,17 @@ export class GitHubPRAnalyzer {
             
             if (!response) {
                 try {
-                    const apiResponse = await this.api.get(`/users/${this.owner}/repos`, {
-                        params: {
-                            type: 'all',
-                            sort: 'updated',
-                            per_page: perPage,
-                            page: page
-                        }
-                    });
+                    const apiResponse = await this._makeApiRequestWithRetry(
+                        () => this.api.get(`/users/${this.owner}/repos`, {
+                            params: {
+                                type: 'all',
+                                sort: 'updated',
+                                per_page: perPage,
+                                page: page
+                            }
+                        }),
+                        `repositories for ${this.owner} (page ${page})`
+                    );
                     response = apiResponse.data;
                     this.cache.set(cacheKey, response);
                 } catch (error) {
@@ -231,16 +362,19 @@ export class GitHubPRAnalyzer {
             
             if (!response) {
                 try {
-                    const apiResponse = await this.api.get(`/repos/${repo}/pulls`, {
-                        params: {
-                            state: 'all',
-                            since: since.toISOString(),
-                            per_page: perPage,
-                            page: page,
-                            sort: 'updated',
-                            direction: 'desc'
-                        }
-                    });
+                    const apiResponse = await this._makeApiRequestWithRetry(
+                        () => this.api.get(`/repos/${repo}/pulls`, {
+                            params: {
+                                state: 'all',
+                                since: since.toISOString(),
+                                per_page: perPage,
+                                page: page,
+                                sort: 'updated',
+                                direction: 'desc'
+                            }
+                        }),
+                        `pull requests for ${repo} (page ${page})`
+                    );
                     response = apiResponse.data;
                     this.cache.set(cacheKey, response);
                 } catch (error) {
@@ -284,7 +418,10 @@ export class GitHubPRAnalyzer {
         
         if (!reviews) {
             try {
-                const response = await this.api.get(`/repos/${repo}/pulls/${prNumber}/reviews`);
+                const response = await this._makeApiRequestWithRetry(
+                    () => this.api.get(`/repos/${repo}/pulls/${prNumber}/reviews`),
+                    `reviews for PR #${prNumber} in ${repo}`
+                );
                 reviews = response.data;
                 this.cache.set(cacheKey, reviews);
             } catch (error) {
@@ -305,7 +442,10 @@ export class GitHubPRAnalyzer {
         
         if (!commits) {
             try {
-                const response = await this.api.get(`/repos/${repo}/pulls/${prNumber}/commits`);
+                const response = await this._makeApiRequestWithRetry(
+                    () => this.api.get(`/repos/${repo}/pulls/${prNumber}/commits`),
+                    `commits for PR #${prNumber} in ${repo}`
+                );
                 commits = response.data;
                 this.cache.set(cacheKey, commits);
             } catch (error) {
