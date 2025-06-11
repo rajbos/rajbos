@@ -96,15 +96,33 @@ export class GitHubPRAnalyzer {
      * @param {Function} requestFn - Function that makes the actual API request
      * @param {string} context - Context description for logging
      * @param {number} maxRetries - Maximum number of retries (default: 3)
-     * @returns {Promise} - Promise that resolves to the API response
+     * @param {boolean} useCache - Whether to use cache (default: true)
+     * @param {string} cacheKey - Key to use for caching (required if useCache is true)
+     * @returns {Promise} - Promise that resolves to the API response data
      */
-    async _makeApiRequestWithRetry(requestFn, context = 'API request', maxRetries = 3) {
+    async _makeApiRequestWithRetry(requestFn, context = 'API request', maxRetries = 3, useCache = true, cacheKey = null) {
+        // Check cache if enabled
+        if (useCache) {
+            if (!cacheKey) {
+                throw new Error('Cache key is required when using cache');
+            }
+            const cachedData = this.cache.get(cacheKey);
+            if (cachedData) {
+                console.log(`Using cached data for [${requestFn.toString()}]`);
+                return cachedData;
+            }
+        }
+
         let lastError;
         
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
                 const response = await requestFn();
-                return response;
+                // Store in cache if enabled
+                if (useCache && cacheKey) {
+                    this.cache.set(cacheKey, response.data);
+                }
+                return response.data;
             } catch (error) {
                 lastError = error;
                 
@@ -221,14 +239,16 @@ export class GitHubPRAnalyzer {
      */
     async getRateLimitInfo() {
         try {
+            const cacheKey = 'rate_limit_info';
             const response = await this._makeApiRequestWithRetry(
-                () => axios.get(`${this.baseUrl}/rate_limit`, {
-                    headers: this.headers
-                }),
-                'rate limit info'
+                () => this.api.get('/rate_limit'),
+                'rate limit info',
+                3, // maxRetries
+                true, // useCache
+                cacheKey
             );
             
-            const rateLimitData = response.data;
+            const rateLimitData = response;
             const resetTimestamp = rateLimitData.rate.reset;
             const resetDateTime = new Date(resetTimestamp * 1000);
             const currentTime = new Date();
@@ -262,34 +282,31 @@ export class GitHubPRAnalyzer {
         
         while (true) {
             const cacheKey = `repos_${this.owner}_${page}`;
-            let response = this.cache.get(cacheKey);
-            
-            if (!response) {
-                try {
-                    const apiResponse = await this._makeApiRequestWithRetry(
-                        () => this.api.get(`/users/${this.owner}/repos`, {
-                            params: {
-                                type: 'all',
-                                sort: 'updated',
-                                per_page: perPage,
-                                page: page
-                            }
-                        }),
-                        `repositories for ${this.owner} (page ${page})`
-                    );
-                    response = apiResponse.data;
-                    this.cache.set(cacheKey, response);
-                } catch (error) {
-                    throw new Error(`Failed to fetch repositories for ${this.owner}: ${error.message}`);
+            try {
+                const response = await this._makeApiRequestWithRetry(
+                    () => this.api.get(`/users/${this.owner}/repos`, {
+                        params: {
+                            type: 'all',
+                            sort: 'updated',
+                            per_page: perPage,
+                            page: page
+                        }
+                    }),
+                    `repositories for ${this.owner} (page ${page})`,
+                    3,  // maxRetries
+                    true, // useCache
+                    cacheKey
+                );
+
+                if (!response || response.length === 0) {
+                    break;
                 }
+
+                repos.push(...response);
+                page++;
+            } catch (error) {
+                throw new Error(`Failed to fetch repositories for ${this.owner}: ${error.message}`);
             }
-            
-            if (response.length === 0) {
-                break;
-            }
-            
-            repos.push(...response);
-            page++;
         }
         
         return repos;
@@ -359,52 +376,49 @@ export class GitHubPRAnalyzer {
         
         while (true) {
             const cacheKey = `pulls_${repo}_${since.toISOString()}_${page}`;
-            let response = this.cache.get(cacheKey);
-            
-            if (!response) {
-                try {
-                    const apiResponse = await this._makeApiRequestWithRetry(
-                        () => this.api.get(`/repos/${repo}/pulls`, {
-                            params: {
-                                state: 'all',
-                                since: since.toISOString(),
-                                per_page: perPage,
-                                page: page,
-                                sort: 'updated',
-                                direction: 'desc'
-                            }
-                        }),
-                        `pull requests for ${repo} (page ${page})`
-                    );
-                    response = apiResponse.data;
-                    this.cache.set(cacheKey, response);
-                } catch (error) {
-                    if (error.response?.status === 404) {
-                        console.log(`Repository ${repo} not found or not accessible`);
-                        return [];
-                    }
-                    throw new Error(`Failed to fetch pull requests for ${repo}: ${error.message}`);
+            try {
+                const response = await this._makeApiRequestWithRetry(
+                    () => this.api.get(`/repos/${repo}/pulls`, {
+                        params: {
+                            state: 'all',
+                            since: since.toISOString(),
+                            per_page: perPage,
+                            page: page,
+                            sort: 'updated',
+                            direction: 'desc'
+                        }
+                    }),
+                    `pull requests for ${repo} (page ${page})`,
+                    3, // maxRetries
+                    true, // useCache
+                    cacheKey
+                );
+
+                if (!response || response.length === 0) {
+                    break;
                 }
+
+                // Filter PRs that are actually within our date range
+                const filteredPRs = response.filter(pr => {
+                    const createdAt = new Date(pr.created_at);
+                    return createdAt >= since;
+                });
+
+                pulls.push(...filteredPRs);
+
+                // If we got fewer results than requested or the last PR is older than our cutoff, we're done
+                if (response.length < perPage || filteredPRs.length < response.length) {
+                    break;
+                }
+
+                page++;
+            } catch (error) {
+                if (error.response?.status === 404) {
+                    console.log(`Repository ${repo} not found or not accessible`);
+                    return [];
+                }
+                throw new Error(`Failed to fetch pull requests for ${repo}: ${error.message}`);
             }
-            
-            if (response.length === 0) {
-                break;
-            }
-            
-            // Filter PRs that are actually within our date range
-            const filteredPRs = response.filter(pr => {
-                const createdAt = new Date(pr.created_at);
-                return createdAt >= since;
-            });
-            
-            pulls.push(...filteredPRs);
-            
-            // If we got fewer results than requested or the last PR is older than our cutoff, we're done
-            if (response.length < perPage || filteredPRs.length < response.length) {
-                break;
-            }
-            
-            page++;
         }
         
         return pulls;
@@ -415,23 +429,19 @@ export class GitHubPRAnalyzer {
      */
     async getPRReviews(repo, prNumber) {
         const cacheKey = `reviews_${repo}_${prNumber}`;
-        let reviews = this.cache.get(cacheKey);
-        
-        if (!reviews) {
-            try {
-                const response = await this._makeApiRequestWithRetry(
-                    () => this.api.get(`/repos/${repo}/pulls/${prNumber}/reviews`),
-                    `reviews for PR #${prNumber} in ${repo}`
-                );
-                reviews = response.data;
-                this.cache.set(cacheKey, reviews);
-            } catch (error) {
-                console.log(`Warning: Could not fetch reviews for PR #${prNumber}: ${error.message}`);
-                return [];
-            }
+        try {
+            const reviews = await this._makeApiRequestWithRetry(
+                () => this.api.get(`/repos/${repo}/pulls/${prNumber}/reviews`),
+                `reviews for PR #${prNumber} in ${repo}`,
+                3, // maxRetries
+                true, // useCache
+                cacheKey
+            );
+            return reviews || [];
+        } catch (error) {
+            console.log(`Warning: Could not fetch reviews for PR #${prNumber}: ${error.message}`);
+            return [];
         }
-        
-        return reviews;
     }
 
     /**
@@ -439,23 +449,19 @@ export class GitHubPRAnalyzer {
      */
     async getPRCommits(repo, prNumber) {
         const cacheKey = `commits_${repo}_${prNumber}`;
-        let commits = this.cache.get(cacheKey);
-        
-        if (!commits) {
-            try {
-                const response = await this._makeApiRequestWithRetry(
-                    () => this.api.get(`/repos/${repo}/pulls/${prNumber}/commits`),
-                    `commits for PR #${prNumber} in ${repo}`
-                );
-                commits = response.data;
-                this.cache.set(cacheKey, commits);
-            } catch (error) {
-                console.log(`Warning: Could not fetch commits for PR #${prNumber}: ${error.message}`);
-                return [];
-            }
+        try {
+            const commits = await this._makeApiRequestWithRetry(
+                () => this.api.get(`/repos/${repo}/pulls/${prNumber}/commits`),
+                `commits for PR #${prNumber} in ${repo}`,
+                3, // maxRetries
+                true, // useCache
+                cacheKey
+            );
+            return commits || [];
+        } catch (error) {
+            console.log(`Warning: Could not fetch commits for PR #${prNumber}: ${error.message}`);
+            return [];
         }
-        
-        return commits;
     }
 
     /**
@@ -463,20 +469,19 @@ export class GitHubPRAnalyzer {
      */
     async getPRFiles(repo, prNumber) {
         const cacheKey = `files_${repo}_${prNumber}`;
-        let files = this.cache.get(cacheKey);
-        
-        if (!files) {
-            try {
-                const response = await this.api.get(`/repos/${repo}/pulls/${prNumber}/files`);
-                files = response.data;
-                this.cache.set(cacheKey, files);
-            } catch (error) {
-                console.log(`Warning: Could not fetch files for PR #${prNumber}: ${error.message}`);
-                return [];
-            }
+        try {
+            const files = await this._makeApiRequestWithRetry(
+                () => this.api.get(`/repos/${repo}/pulls/${prNumber}/files`),
+                `files for PR #${prNumber} in ${repo}`,
+                3, // maxRetries
+                true, // useCache
+                cacheKey
+            );
+            return files || [];
+        } catch (error) {
+            console.log(`Warning: Could not fetch files for PR #${prNumber}: ${error.message}`);
+            return [];
         }
-        
-        return files;
     }
 
     /**
@@ -738,7 +743,7 @@ export class GitHubPRAnalyzer {
                     repositoryNames.add(maskedRepoName);
                     
                     if (shouldShowAnalysisMessage(isPrivate)) {
-                        console.log(`  Found ${pulls.length} PRs in [${maskedRepoName}]`);
+                        console.log(`  Found ${pulls.length} PRs to analyze in [${maskedRepoName}]`);
                     }
                 }
                 
