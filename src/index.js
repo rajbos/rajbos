@@ -106,6 +106,41 @@ async function runAnalysis(options) {
             console.log(`  - Collaborators: ${data.uniqueCollaborators} (${data.collaborators.join(', ')})`);
         }
         
+        // Print commit count summary for Copilot PRs
+        console.log('\n=== COPILOT PR COMMIT COUNTS ===');
+        let totalCopilotPRsWithCommits = 0;
+        let totalUserCommits = 0;
+        let totalCopilotCommits = 0;
+        let totalCommitsInCopilotPRs = 0;
+        
+        for (const week of sortedWeeks) {
+            const data = results.weeklyAnalysis[week];
+            const copilotPRs = data.pullRequests.filter(pr => pr.copilotAssisted && pr.commitCounts);
+            
+            if (copilotPRs.length > 0) {
+                console.log(`\nWeek ${week} - Copilot PRs with commit details:`);
+                for (const pr of copilotPRs) {
+                    const { totalCommits, userCommits, copilotCommits } = pr.commitCounts;
+                    console.log(`  PR #${pr.number}: ${totalCommits} total commits (${userCommits} by user, ${copilotCommits} by/with Copilot)`);
+                    
+                    totalCopilotPRsWithCommits++;
+                    totalUserCommits += userCommits;
+                    totalCopilotCommits += copilotCommits;
+                    totalCommitsInCopilotPRs += totalCommits;
+                }
+            }
+        }
+        
+        if (totalCopilotPRsWithCommits > 0) {
+            console.log(`\nOverall Copilot PR Commit Summary:`);
+            console.log(`- Copilot PRs analyzed: [${totalCopilotPRsWithCommits}]`);
+            console.log(`- Total commits in Copilot PRs: [${totalCommitsInCopilotPRs}]`);
+            console.log(`- User commits: [${totalUserCommits}] (${Math.round(totalUserCommits / totalCommitsInCopilotPRs * 100)}%)`);
+            console.log(`- Copilot commits: [${totalCopilotCommits}] (${Math.round(totalCopilotCommits / totalCommitsInCopilotPRs * 100)}%)`);
+        } else {
+            console.log('No Copilot PRs found with commit data in the analysis period.');
+        }
+        
         // Print rate limit info after completion
         await printRateLimitInfo(analyzer);
         
