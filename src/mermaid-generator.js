@@ -426,6 +426,140 @@ export function generateCommitStatsDataTable(weeklyData) {
 }
 
 /**
+ * Calculate line changes statistics per week for all PRs.
+ */
+export function calculateLineChangesStatsPerWeek(weeklyData) {
+    const weeklyLineStats = {};
+    
+    for (const [week, data] of Object.entries(weeklyData)) {
+        const prsWithLineChanges = data.pullRequests.filter(pr => pr.lineChanges);
+        
+        if (prsWithLineChanges.length > 0) {
+            const additions = prsWithLineChanges.map(pr => pr.lineChanges.additions);
+            const deletions = prsWithLineChanges.map(pr => pr.lineChanges.deletions);
+            const changes = prsWithLineChanges.map(pr => pr.lineChanges.changes);
+            const filesChanged = prsWithLineChanges.map(pr => pr.lineChanges.filesChanged);
+            
+            weeklyLineStats[week] = {
+                prCount: prsWithLineChanges.length,
+                additions: {
+                    min: Math.min(...additions),
+                    max: Math.max(...additions),
+                    avg: Math.round(additions.reduce((a, b) => a + b, 0) / additions.length * 10) / 10
+                },
+                deletions: {
+                    min: Math.min(...deletions),
+                    max: Math.max(...deletions),
+                    avg: Math.round(deletions.reduce((a, b) => a + b, 0) / deletions.length * 10) / 10
+                },
+                changes: {
+                    min: Math.min(...changes),
+                    max: Math.max(...changes),
+                    avg: Math.round(changes.reduce((a, b) => a + b, 0) / changes.length * 10) / 10
+                },
+                filesChanged: {
+                    min: Math.min(...filesChanged),
+                    max: Math.max(...filesChanged),
+                    avg: Math.round(filesChanged.reduce((a, b) => a + b, 0) / filesChanged.length * 10) / 10
+                }
+            };
+        }
+    }
+    
+    return weeklyLineStats;
+}
+
+/**
+ * Generate mermaid chart showing lines of code statistics for PRs.
+ */
+export function generateLineChangesChart(weeklyData) {
+    if (!weeklyData || Object.keys(weeklyData).length === 0) {
+        return "No data available for line changes chart";
+    }
+    
+    const lineStats = calculateLineChangesStatsPerWeek(weeklyData);
+    const statsWeeks = Object.keys(lineStats);
+    
+    if (statsWeeks.length === 0) {
+        return "No PR line changes data available for this period";
+    }
+    
+    // Sort weeks chronologically
+    const sortedWeeks = statsWeeks.sort((a, b) => {
+        const [yearA, weekA] = parseWeekKey(a);
+        const [yearB, weekB] = parseWeekKey(b);
+        return yearA !== yearB ? yearA - yearB : weekA - weekB;
+    });
+    
+    // Generate chart data
+    const chartLines = [];
+    chartLines.push("```mermaid");
+    chartLines.push("xychart-beta");
+    chartLines.push('    title "Lines of Code Changed per PR by Week"');
+    chartLines.push('    x-axis [' + sortedWeeks.map(week => `"${formatWeekForDisplay(week)}"`).join(', ') + ']');
+    
+    // Calculate max value for y-axis
+    const maxValue = Math.max(...sortedWeeks.map(week => lineStats[week].changes.max));
+    chartLines.push('    y-axis "Lines of Code" 0 --> ' + (maxValue + 50));
+    
+    // Min changes line
+    const minChanges = sortedWeeks.map(week => lineStats[week].changes.min);
+    chartLines.push('    line "Min Lines Changed" [' + minChanges.join(', ') + ']');
+    
+    // Average changes line
+    const avgChanges = sortedWeeks.map(week => lineStats[week].changes.avg);
+    chartLines.push('    line "Avg Lines Changed" [' + avgChanges.join(', ') + ']');
+    
+    // Max changes line
+    const maxChanges = sortedWeeks.map(week => lineStats[week].changes.max);
+    chartLines.push('    line "Max Lines Changed" [' + maxChanges.join(', ') + ']');
+    
+    chartLines.push("```");
+    
+    // Add legend explanation
+    const legendExplanation = [
+        "",
+        "**Legend:**",
+        "- 📉 **Min Lines Changed**: Minimum lines of code changed per PR for each week",
+        "- 📊 **Avg Lines Changed**: Average lines of code changed per PR for each week",
+        "- 📈 **Max Lines Changed**: Maximum lines of code changed per PR for each week",
+        "- **Higher averages may indicate more significant code changes per PR**"
+    ];
+    
+    return chartLines.concat(legendExplanation).join('\n');
+}
+
+/**
+ * Generate markdown table showing line changes statistics data.
+ */
+export function generateLineChangesDataTable(weeklyData) {
+    const lineStats = calculateLineChangesStatsPerWeek(weeklyData);
+    const statsWeeks = Object.keys(lineStats);
+    
+    if (statsWeeks.length === 0) {
+        return "No PR line changes data available for table";
+    }
+    
+    const lines = [];
+    lines.push("| Week | PRs | Min Changes | Avg Changes | Max Changes | Min Additions | Avg Additions | Max Additions | Min Deletions | Avg Deletions | Max Deletions |");
+    lines.push("|------|-----|-------------|-------------|-------------|---------------|---------------|---------------|---------------|---------------|---------------|");
+    
+    // Sort weeks chronologically
+    const sortedWeeks = statsWeeks.sort((a, b) => {
+        const [yearA, weekA] = parseWeekKey(a);
+        const [yearB, weekB] = parseWeekKey(b);
+        return yearA !== yearB ? yearA - yearB : weekA - weekB;
+    });
+    
+    for (const week of sortedWeeks) {
+        const stats = lineStats[week];
+        lines.push(`| ${week} | ${stats.prCount} | ${stats.changes.min} | ${stats.changes.avg} | ${stats.changes.max} | ${stats.additions.min} | ${stats.additions.avg} | ${stats.additions.max} | ${stats.deletions.min} | ${stats.deletions.avg} | ${stats.deletions.max} |`);
+    }
+    
+    return lines.join('\n');
+}
+
+/**
  * Generate summary statistics in markdown format.
  */
 export function generateSummaryStats(results) {
@@ -560,6 +694,24 @@ export async function generateMermaidCharts() {
             await writeToStepSummary("<summary>📊 Commit Count Statistics Data</summary>");
             await writeToStepSummary("");
             await writeToStepSummary(commitStatsTable);
+            await writeToStepSummary("");
+            await writeToStepSummary("</details>");
+        }
+        
+        // Generate line changes statistics chart and table
+        const lineChangesChart = generateLineChangesChart(weeklyData);
+        await writeToStepSummary("## 📈 Lines of Code Changed per PR");
+        await writeToStepSummary("");
+        await writeToStepSummary("*This chart displays min/average/max lines of code changed per PR for each week.*");
+        await writeToStepSummary(lineChangesChart);
+        
+        // Generate line changes statistics data table
+        const lineChangesTable = generateLineChangesDataTable(weeklyData);
+        if (lineChangesTable !== "No PR line changes data available for table") {
+            await writeToStepSummary("<details>");
+            await writeToStepSummary("<summary>📊 Lines of Code Statistics Data</summary>");
+            await writeToStepSummary("");
+            await writeToStepSummary(lineChangesTable);
             await writeToStepSummary("");
             await writeToStepSummary("</details>");
         }

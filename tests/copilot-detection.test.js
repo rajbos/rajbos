@@ -1,6 +1,13 @@
 import { jest } from '@jest/globals';
 import { GitHubPRAnalyzer } from '../src/pr-analyzer.js';
-import { calculateCommitStatsPerWeek, generateCommitStatsChart, generateCommitStatsDataTable } from '../src/mermaid-generator.js';
+import { 
+    calculateCommitStatsPerWeek, 
+    generateCommitStatsChart, 
+    generateCommitStatsDataTable,
+    calculateLineChangesStatsPerWeek,
+    generateLineChangesChart,
+    generateLineChangesDataTable
+} from '../src/mermaid-generator.js';
 
 describe('GitHubPRAnalyzer - Copilot Detection', () => {
     let analyzer;
@@ -326,6 +333,30 @@ describe('GitHubPRAnalyzer - Copilot Detection', () => {
         expect(result.copilotCommits).toBe(1);
         expect(result.userCommits).toBe(0);
     });
+    
+    test('should analyze line changes correctly', () => {
+        const files = [
+            { additions: 50, deletions: 20, changes: 70 },
+            { additions: 30, deletions: 10, changes: 40 },
+            { additions: 0, deletions: 5, changes: 5 }
+        ];
+        
+        const result = analyzer.analyzeLineChanges(files);
+        
+        expect(result.additions).toBe(80);
+        expect(result.deletions).toBe(35);
+        expect(result.changes).toBe(115);
+        expect(result.filesChanged).toBe(3);
+    });
+    
+    test('should handle empty files list for line changes', () => {
+        const result = analyzer.analyzeLineChanges([]);
+        
+        expect(result.additions).toBe(0);
+        expect(result.deletions).toBe(0);
+        expect(result.changes).toBe(0);
+        expect(result.filesChanged).toBe(0);
+    });
 });
 
 describe('Commit Statistics Functions', () => {
@@ -446,5 +477,116 @@ describe('Commit Statistics Functions', () => {
     test('should handle empty data for commit stats data table', () => {
         const result = generateCommitStatsDataTable({});
         expect(result).toBe("No Copilot PR commit data available for table");
+    });
+    
+    test('should calculate line changes statistics per week correctly', () => {
+        const weeklyData = {
+            '2024-W01': {
+                pullRequests: [
+                    {
+                        lineChanges: { additions: 50, deletions: 20, changes: 70, filesChanged: 3 }
+                    },
+                    {
+                        lineChanges: { additions: 30, deletions: 10, changes: 40, filesChanged: 2 }
+                    }
+                ]
+            },
+            '2024-W02': {
+                pullRequests: [
+                    {
+                        lineChanges: { additions: 100, deletions: 40, changes: 140, filesChanged: 5 }
+                    }
+                ]
+            }
+        };
+        
+        const result = calculateLineChangesStatsPerWeek(weeklyData);
+        
+        expect(result['2024-W01']).toEqual({
+            prCount: 2,
+            additions: { min: 30, max: 50, avg: 40 },
+            deletions: { min: 10, max: 20, avg: 15 },
+            changes: { min: 40, max: 70, avg: 55 },
+            filesChanged: { min: 2, max: 3, avg: 2.5 }
+        });
+        
+        expect(result['2024-W02']).toEqual({
+            prCount: 1,
+            additions: { min: 100, max: 100, avg: 100 },
+            deletions: { min: 40, max: 40, avg: 40 },
+            changes: { min: 140, max: 140, avg: 140 },
+            filesChanged: { min: 5, max: 5, avg: 5 }
+        });
+    });
+    
+    test('should handle weeks with no PR line changes data', () => {
+        const weeklyData = {
+            '2024-W01': {
+                pullRequests: [
+                    {
+                        // PR without lineChanges data
+                        copilotAssisted: false
+                    }
+                ]
+            }
+        };
+        
+        const result = calculateLineChangesStatsPerWeek(weeklyData);
+        
+        expect(result).toEqual({});
+    });
+    
+    test('should generate line changes chart correctly', () => {
+        const weeklyData = {
+            '2024-W01': {
+                pullRequests: [
+                    {
+                        lineChanges: { additions: 50, deletions: 20, changes: 70, filesChanged: 3 }
+                    }
+                ]
+            }
+        };
+        
+        const result = generateLineChangesChart(weeklyData);
+        
+        expect(result).toContain('```mermaid');
+        expect(result).toContain('xychart-beta');
+        expect(result).toContain('title "Lines of Code Changed per PR by Week"');
+        expect(result).toContain('line "Min Lines Changed" [70]');
+        expect(result).toContain('line "Avg Lines Changed" [70]');
+        expect(result).toContain('line "Max Lines Changed" [70]');
+        expect(result).toContain('**Min Lines Changed**');
+        expect(result).toContain('**Avg Lines Changed**');
+        expect(result).toContain('**Max Lines Changed**');
+    });
+    
+    test('should handle empty data for line changes chart', () => {
+        const result = generateLineChangesChart({});
+        expect(result).toBe("No data available for line changes chart");
+    });
+    
+    test('should generate line changes data table correctly', () => {
+        const weeklyData = {
+            '2024-W01': {
+                pullRequests: [
+                    {
+                        lineChanges: { additions: 50, deletions: 20, changes: 70, filesChanged: 3 }
+                    },
+                    {
+                        lineChanges: { additions: 30, deletions: 10, changes: 40, filesChanged: 2 }
+                    }
+                ]
+            }
+        };
+        
+        const result = generateLineChangesDataTable(weeklyData);
+        
+        expect(result).toContain('| Week | PRs | Min Changes | Avg Changes | Max Changes |');
+        expect(result).toContain('| 2024-W01 | 2 | 40 | 55 | 70 |');
+    });
+    
+    test('should handle empty data for line changes data table', () => {
+        const result = generateLineChangesDataTable({});
+        expect(result).toBe("No PR line changes data available for table");
     });
 });
