@@ -458,6 +458,27 @@ export class GitHubPRAnalyzer {
     }
 
     /**
+     * Get files changed in a pull request.
+     */
+    async getPRFiles(repo, prNumber) {
+        const cacheKey = `files_${repo}_${prNumber}`;
+        let files = this.cache.get(cacheKey);
+        
+        if (!files) {
+            try {
+                const response = await this.api.get(`/repos/${repo}/pulls/${prNumber}/files`);
+                files = response.data;
+                this.cache.set(cacheKey, files);
+            } catch (error) {
+                console.log(`Warning: Could not fetch files for PR #${prNumber}: ${error.message}`);
+                return [];
+            }
+        }
+        
+        return files;
+    }
+
+    /**
      * Analyze commits in a PR to count commits by user vs Copilot.
      */
     analyzeCommitCounts(commits) {
@@ -498,6 +519,33 @@ export class GitHubPRAnalyzer {
             totalCommits,
             userCommits,
             copilotCommits
+        };
+    }
+
+    /**
+     * Analyze files in a PR to count lines of code changes.
+     */
+    analyzeLineChanges(files) {
+        let totalAdditions = 0;
+        let totalDeletions = 0;
+        let totalChanges = 0;
+        let filesChanged = files.length;
+        
+        for (const file of files) {
+            const additions = file.additions || 0;
+            const deletions = file.deletions || 0;
+            const changes = file.changes || 0;
+            
+            totalAdditions += additions;
+            totalDeletions += deletions;
+            totalChanges += changes;
+        }
+        
+        return {
+            additions: totalAdditions,
+            deletions: totalDeletions,
+            changes: totalChanges,
+            filesChanged: filesChanged
         };
     }
 
@@ -757,6 +805,15 @@ export class GitHubPRAnalyzer {
                         }
                     }
                     
+                    // Analyze line changes for all PRs
+                    let lineChanges = null;
+                    try {
+                        const files = await this.getPRFiles(pr.base.repo.full_name, pr.number);
+                        lineChanges = this.analyzeLineChanges(files);
+                    } catch (error) {
+                        console.log(`Warning: Could not analyze line changes for PR #${pr.number}: ${error.message}`);
+                    }
+                    
                     // Store PR details (Dependabot PRs are excluded)
                     const prDetails = {
                         number: pr.number,
@@ -775,6 +832,11 @@ export class GitHubPRAnalyzer {
                         prDetails.commitCounts = commitCounts;
                     }
                     
+                    // Add line changes for all PRs
+                    if (lineChanges) {
+                        prDetails.lineChanges = lineChanges;
+                    }
+                    
                     weeklyData[weekKey].pullRequests.push(prDetails);
                 }
             } catch (error) {
@@ -783,7 +845,7 @@ export class GitHubPRAnalyzer {
         }
         
         // Log summary including Dependabot exclusions
-        console.log(`\nAnalysis complete:`);
+        console.log('\nAnalysis complete:');
         console.log(`- Total PRs analyzed: ${totalPRs}`);
         console.log(`- Dependabot PRs excluded: ${totalDependabotPRs}`);
         console.log(`- Copilot-assisted PRs: ${totalCopilotPRs}`);

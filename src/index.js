@@ -132,7 +132,7 @@ async function runAnalysis(options) {
         }
         
         if (totalCopilotPRsWithCommits > 0) {
-            console.log(`\nOverall Copilot PR Commit Summary:`);
+            console.log('\nOverall Copilot PR Commit Summary:');
             console.log(`- Copilot PRs analyzed: [${totalCopilotPRsWithCommits}]`);
             console.log(`- Total commits in Copilot PRs: [${totalCommitsInCopilotPRs}]`);
             console.log(`- User commits: [${totalUserCommits}] (${Math.round(totalUserCommits / totalCommitsInCopilotPRs * 100)}%)`);
