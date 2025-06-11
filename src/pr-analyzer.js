@@ -3,6 +3,7 @@ import NodeCache from 'node-cache';
 import fs from 'fs/promises';
 import path from 'path';
 import createCsvWriter from 'csv-writer';
+import { REPORT_FOLDER } from './constants.js';
 
 /**
  * Check if the script is running in a CI environment (GitHub Actions).
@@ -748,6 +749,34 @@ export class GitHubPRAnalyzer {
                         totalDependabotPRs++;
                         continue;
                     }
+
+                    // Check if authenticated user is involved in the PR
+                    let isUserInvolved = false;
+
+                    // Check author
+                    if (pr.user && pr.user.login === this.owner) {
+                        isUserInvolved = true;
+                    }
+
+                    // Check assignees
+                    if (!isUserInvolved && pr.assignees && Array.isArray(pr.assignees)) {
+                        isUserInvolved = pr.assignees.some(assignee => assignee.login === this.owner);
+                    }
+
+                    // Check reviewers
+                    if (!isUserInvolved) {
+                        try {
+                            const reviews = await this.getPRReviews(pr.base.repo.full_name, pr.number);
+                            isUserInvolved = reviews.some(review => review.user && review.user.login === this.owner);
+                        } catch (error) {
+                            console.log(`Warning: Could not fetch reviews for PR #${pr.number}: ${error.message}`);
+                        }
+                    }
+
+                    // Skip PR if authenticated user is not involved
+                    if (!isUserInvolved) {
+                        continue;
+                    }
                     
                     const createdAt = new Date(pr.created_at);
                     const weekKey = this.getWeekKey(createdAt);
@@ -766,15 +795,38 @@ export class GitHubPRAnalyzer {
                     
                     weeklyData[weekKey].totalPRs++;
                     totalPRs++;
-                    
+
                     // Add author to collaborators
                     if (pr.user && pr.user.login) {
                         allCollaborators.add(pr.user.login);
                         weeklyData[weekKey].collaborators.add(pr.user.login);
                     }
                     
+                    // Add assignees to collaborators
+                    if (pr.assignees && Array.isArray(pr.assignees)) {
+                        for (const assignee of pr.assignees) {
+                            if (assignee.login) {
+                                allCollaborators.add(assignee.login);
+                                weeklyData[weekKey].collaborators.add(assignee.login);
+                            }
+                        }
+                    }
+
+                    // Add reviewers to collaborators
+                    try {
+                        const reviews = await this.getPRReviews(pr.base.repo.full_name, pr.number);
+                        for (const review of reviews) {
+                            if (review.user && review.user.login) {
+                                allCollaborators.add(review.user.login);
+                                weeklyData[weekKey].collaborators.add(review.user.login);
+                            }
+                        }
+                    } catch (error) {
+                        console.log(`Warning: Could not fetch reviews for PR #${pr.number}: ${error.message}`);
+                    }
+
                     weeklyData[weekKey].repositories.add(maskedRepoName);
-                    
+
                     // Detect Copilot collaboration
                     const copilotType = await this.detectCopilotCollaboration(pr);
                     
@@ -824,9 +876,30 @@ export class GitHubPRAnalyzer {
                         copilotAssisted: copilotAssisted,
                         copilotType: copilotType,
                         dependabotPr: false, // Always false since we exclude Dependabot PRs
-                        url: pr.html_url
+                        url: pr.html_url,
+                        collaborators: new Set([
+                            // Add author
+                            pr.user ? pr.user.login : null,
+                            // Add assignees
+                            ...(pr.assignees || []).map(assignee => assignee.login)
+                        ])
                     };
                     
+                    // Add reviewers to PR collaborators
+                    try {
+                        const reviews = await this.getPRReviews(pr.base.repo.full_name, pr.number);
+                        for (const review of reviews) {
+                            if (review.user && review.user.login) {
+                                prDetails.collaborators.add(review.user.login);
+                            }
+                        }
+                    } catch (error) {
+                        console.log(`Warning: Could not fetch reviews for PR #${pr.number}: ${error.message}`);
+                    }
+
+                    // Convert collaborators Set to Array and remove nulls
+                    prDetails.collaborators = Array.from(prDetails.collaborators).filter(Boolean);
+
                     // Add commit counts for Copilot PRs
                     if (commitCounts) {
                         prDetails.commitCounts = commitCounts;
@@ -896,11 +969,11 @@ export class GitHubPRAnalyzer {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
         
         if (outputFormat.toLowerCase() === 'json') {
-            const filename = `pr_analysis_${timestamp}.json`;
+            const filename = `${REPORT_FOLDER}pr_analysis_${timestamp}.json`;
             await fs.writeFile(filename, JSON.stringify(results, null, 2));
             return filename;
         } else if (outputFormat.toLowerCase() === 'csv') {
-            const filename = `pr_analysis_${timestamp}.csv`;
+            const filename = `${REPORT_FOLDER}pr_analysis_${timestamp}.csv`;
             const csvWriter = createCsvWriter.createObjectCsvWriter;
             
             // Prepare CSV data

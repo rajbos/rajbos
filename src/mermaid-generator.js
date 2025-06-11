@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import { glob } from 'glob';
+import { REPORT_FOLDER } from './constants.js';
 
 /**
  * Check if the script is running in a CI environment (GitHub Actions).
@@ -30,9 +31,9 @@ export function maskPrivateInfoForDisplay(value) {
  * Find the latest analysis JSON file.
  */
 export async function findLatestAnalysisFile() {
-    const jsonFiles = await glob('pr_analysis_*.json');
+    const jsonFiles = await glob(`${REPORT_FOLDER}pr_analysis_*.json`);
     if (jsonFiles.length === 0) {
-        throw new Error('No analysis JSON files found');
+        throw new Error('No analysis JSON files found in report folder');
     }
     
     // Sort by filename (which includes timestamp)
