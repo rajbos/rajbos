@@ -586,6 +586,48 @@ export function calculateWeeklyLineTotals(weeklyData) {
 }
 
 /**
+ * Calculate overall line totals for both all PRs and Copilot-assisted PRs.
+ */
+export function calculateOverallLineTotals(weeklyData) {
+    let allPRs = {
+        totalAdditions: 0,
+        totalDeletions: 0,
+        totalChanges: 0,
+        totalFilesChanged: 0
+    };
+    
+    let copilotPRs = {
+        totalAdditions: 0,
+        totalDeletions: 0,
+        totalChanges: 0,
+        totalFilesChanged: 0
+    };
+    
+    for (const [week, data] of Object.entries(weeklyData)) {
+        const prsWithLineChanges = data.pullRequests.filter(pr => pr.lineChanges);
+        const copilotPRsWithLineChanges = data.pullRequests.filter(pr => pr.lineChanges && pr.copilotAssisted);
+        
+        // Calculate totals for all PRs
+        for (const pr of prsWithLineChanges) {
+            allPRs.totalAdditions += pr.lineChanges.additions || 0;
+            allPRs.totalDeletions += pr.lineChanges.deletions || 0;
+            allPRs.totalChanges += pr.lineChanges.changes || 0;
+            allPRs.totalFilesChanged += pr.lineChanges.filesChanged || 0;
+        }
+        
+        // Calculate totals for Copilot-assisted PRs
+        for (const pr of copilotPRsWithLineChanges) {
+            copilotPRs.totalAdditions += pr.lineChanges.additions || 0;
+            copilotPRs.totalDeletions += pr.lineChanges.deletions || 0;
+            copilotPRs.totalChanges += pr.lineChanges.changes || 0;
+            copilotPRs.totalFilesChanged += pr.lineChanges.filesChanged || 0;
+        }
+    }
+    
+    return { allPRs, copilotPRs };
+}
+
+/**
  * Generate mermaid chart showing total lines of code added/deleted per week.
  */
 export function generateWeeklyLineTotalsChart(weeklyData) {
@@ -702,21 +744,18 @@ export function generateSummaryStats(results) {
     
     // Calculate total lines of code added/deleted across all weeks
     if (results.weeklyAnalysis && Object.keys(results.weeklyAnalysis).length > 0) {
-        const lineTotals = calculateWeeklyLineTotals(results.weeklyAnalysis);
-        const totalWeeks = Object.keys(lineTotals);
+        const overallTotals = calculateOverallLineTotals(results.weeklyAnalysis);
         
-        if (totalWeeks.length > 0) {
-            const totalLinesAdded = Object.values(lineTotals).reduce((sum, week) => sum + week.totalAdditions, 0);
-            const totalLinesDeleted = Object.values(lineTotals).reduce((sum, week) => sum + week.totalDeletions, 0);
-            const totalLinesChanged = Object.values(lineTotals).reduce((sum, week) => sum + week.totalChanges, 0);
-            const totalFilesChanged = Object.values(lineTotals).reduce((sum, week) => sum + week.totalFilesChanged, 0);
-            
+        if (overallTotals.allPRs.totalAdditions > 0 || overallTotals.allPRs.totalDeletions > 0) {
             lines.push('');
             lines.push('**📝 Lines of Code Metrics:**');
-            lines.push(`- **Total Lines Added**: ${totalLinesAdded.toLocaleString()}`);
-            lines.push(`- **Total Lines Deleted**: ${totalLinesDeleted.toLocaleString()}`);
-            lines.push(`- **Total Lines Changed**: ${totalLinesChanged.toLocaleString()}`);
-            lines.push(`- **Total Files Changed**: ${totalFilesChanged.toLocaleString()}`);
+            lines.push('');
+            lines.push('| Metric | All PRs | Copilot-Assisted PRs |');
+            lines.push('|--------|---------|---------------------|');
+            lines.push(`| **Total Lines Added** | ${overallTotals.allPRs.totalAdditions.toLocaleString()} | ${overallTotals.copilotPRs.totalAdditions.toLocaleString()} |`);
+            lines.push(`| **Total Lines Deleted** | ${overallTotals.allPRs.totalDeletions.toLocaleString()} | ${overallTotals.copilotPRs.totalDeletions.toLocaleString()} |`);
+            lines.push(`| **Total Lines Changed** | ${overallTotals.allPRs.totalChanges.toLocaleString()} | ${overallTotals.copilotPRs.totalChanges.toLocaleString()} |`);
+            lines.push(`| **Total Files Changed** | ${overallTotals.allPRs.totalFilesChanged.toLocaleString()} | ${overallTotals.copilotPRs.totalFilesChanged.toLocaleString()} |`);
         }
     }
     

@@ -1,5 +1,6 @@
 import { 
     calculateWeeklyLineTotals, 
+    calculateOverallLineTotals,
     generateWeeklyLineTotalsChart, 
     generateWeeklyLineTotalsDataTable,
     generateSummaryStats
@@ -95,6 +96,108 @@ describe('Weekly Line Totals Functions', () => {
         });
     });
 
+    describe('calculateOverallLineTotals', () => {
+        test('should calculate totals correctly for all PRs and Copilot PRs', () => {
+            const mockDataWithCopilot = {
+                '2024-W01': {
+                    pullRequests: [
+                        {
+                            lineChanges: {
+                                additions: 100,
+                                deletions: 50,
+                                changes: 150,
+                                filesChanged: 5
+                            },
+                            copilotAssisted: true
+                        },
+                        {
+                            lineChanges: {
+                                additions: 200,
+                                deletions: 30,
+                                changes: 230,
+                                filesChanged: 8
+                            },
+                            copilotAssisted: false
+                        }
+                    ]
+                },
+                '2024-W02': {
+                    pullRequests: [
+                        {
+                            lineChanges: {
+                                additions: 75,
+                                deletions: 25,
+                                changes: 100,
+                                filesChanged: 3
+                            },
+                            copilotAssisted: false
+                        }
+                    ]
+                }
+            };
+
+            const result = calculateOverallLineTotals(mockDataWithCopilot);
+            
+            expect(result.allPRs).toEqual({
+                totalAdditions: 375,
+                totalDeletions: 105,
+                totalChanges: 480,
+                totalFilesChanged: 16
+            });
+            
+            expect(result.copilotPRs).toEqual({
+                totalAdditions: 100,
+                totalDeletions: 50,
+                totalChanges: 150,
+                totalFilesChanged: 5
+            });
+        });
+
+        test('should handle empty data', () => {
+            const result = calculateOverallLineTotals({});
+            
+            expect(result.allPRs).toEqual({
+                totalAdditions: 0,
+                totalDeletions: 0,
+                totalChanges: 0,
+                totalFilesChanged: 0
+            });
+            
+            expect(result.copilotPRs).toEqual({
+                totalAdditions: 0,
+                totalDeletions: 0,
+                totalChanges: 0,
+                totalFilesChanged: 0
+            });
+        });
+
+        test('should handle data without line changes', () => {
+            const dataWithoutLineChanges = {
+                '2024-W01': {
+                    pullRequests: [
+                        { title: 'PR without line changes', copilotAssisted: true }
+                    ]
+                }
+            };
+            
+            const result = calculateOverallLineTotals(dataWithoutLineChanges);
+            
+            expect(result.allPRs).toEqual({
+                totalAdditions: 0,
+                totalDeletions: 0,
+                totalChanges: 0,
+                totalFilesChanged: 0
+            });
+            
+            expect(result.copilotPRs).toEqual({
+                totalAdditions: 0,
+                totalDeletions: 0,
+                totalChanges: 0,
+                totalFilesChanged: 0
+            });
+        });
+    });
+
     describe('generateWeeklyLineTotalsChart', () => {
         test('should generate chart with correct structure', () => {
             const result = generateWeeklyLineTotalsChart(mockWeeklyData);
@@ -150,17 +253,53 @@ describe('Weekly Line Totals Functions', () => {
                 totalRepositories: 1,
                 totalPRs: 3,
                 totalCopilotPRs: 1,
-                weeklyAnalysis: mockWeeklyData
+                weeklyAnalysis: {
+                    '2024-W01': {
+                        pullRequests: [
+                            {
+                                lineChanges: {
+                                    additions: 100,
+                                    deletions: 50,
+                                    changes: 150,
+                                    filesChanged: 5
+                                },
+                                copilotAssisted: true
+                            },
+                            {
+                                lineChanges: {
+                                    additions: 200,
+                                    deletions: 30,
+                                    changes: 230,
+                                    filesChanged: 8
+                                },
+                                copilotAssisted: false
+                            }
+                        ]
+                    },
+                    '2024-W02': {
+                        pullRequests: [
+                            {
+                                lineChanges: {
+                                    additions: 75,
+                                    deletions: 25,
+                                    changes: 100,
+                                    filesChanged: 3
+                                },
+                                copilotAssisted: false
+                            }
+                        ]
+                    }
+                }
             };
             
             const result = generateSummaryStats(mockResults);
             
             expect(result).toContain('📊 Analysis Summary');
             expect(result).toContain('📝 Lines of Code Metrics:');
-            expect(result).toContain('Total Lines Added**: 375'); // 300 + 75
-            expect(result).toContain('Total Lines Deleted**: 105'); // 80 + 25
-            expect(result).toContain('Total Lines Changed**: 480'); // 380 + 100
-            expect(result).toContain('Total Files Changed**: 16'); // 13 + 3
+            expect(result).toContain('| **Total Lines Added** | 375 | 100 |'); // 300 + 75 total, 100 copilot
+            expect(result).toContain('| **Total Lines Deleted** | 105 | 50 |'); // 80 + 25 total, 50 copilot
+            expect(result).toContain('| **Total Lines Changed** | 480 | 150 |'); // 380 + 100 total, 150 copilot
+            expect(result).toContain('| **Total Files Changed** | 16 | 5 |'); // 13 + 3 total, 5 copilot
         });
 
         test('should handle results without weekly analysis', () => {
