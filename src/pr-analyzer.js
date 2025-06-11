@@ -845,7 +845,7 @@ export class GitHubPRAnalyzer {
         }
         
         // Log summary including Dependabot exclusions
-        console.log(`\nAnalysis complete:`);
+        console.log('\nAnalysis complete:');
         console.log(`- Total PRs analyzed: ${totalPRs}`);
         console.log(`- Dependabot PRs excluded: ${totalDependabotPRs}`);
         console.log(`- Copilot-assisted PRs: ${totalCopilotPRs}`);
