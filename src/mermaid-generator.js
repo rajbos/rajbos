@@ -750,12 +750,27 @@ export function generateSummaryStats(results) {
             lines.push('');
             lines.push('**📝 Lines of Code Metrics:**');
             lines.push('');
-            lines.push('| Metric | All PRs | Copilot-Assisted PRs |');
-            lines.push('|--------|---------|---------------------|');
-            lines.push(`| **Total Lines Added** | ${overallTotals.allPRs.totalAdditions.toLocaleString()} | ${overallTotals.copilotPRs.totalAdditions.toLocaleString()} |`);
-            lines.push(`| **Total Lines Deleted** | ${overallTotals.allPRs.totalDeletions.toLocaleString()} | ${overallTotals.copilotPRs.totalDeletions.toLocaleString()} |`);
-            lines.push(`| **Total Lines Changed** | ${overallTotals.allPRs.totalChanges.toLocaleString()} | ${overallTotals.copilotPRs.totalChanges.toLocaleString()} |`);
-            lines.push(`| **Total Files Changed** | ${overallTotals.allPRs.totalFilesChanged.toLocaleString()} | ${overallTotals.copilotPRs.totalFilesChanged.toLocaleString()} |`);
+            lines.push('| Metric | All PRs | Copilot-Assisted PRs | Percentage |');
+            lines.push('|--------|---------|---------------------|------------|');
+            
+            // Calculate and format percentages
+            const additionsPercentage = overallTotals.allPRs.totalAdditions > 0 
+                ? Math.round(overallTotals.copilotPRs.totalAdditions / overallTotals.allPRs.totalAdditions * 100 * 100) / 100
+                : 0;
+            const deletionsPercentage = overallTotals.allPRs.totalDeletions > 0 
+                ? Math.round(overallTotals.copilotPRs.totalDeletions / overallTotals.allPRs.totalDeletions * 100 * 100) / 100
+                : 0;
+            const changesPercentage = overallTotals.allPRs.totalChanges > 0 
+                ? Math.round(overallTotals.copilotPRs.totalChanges / overallTotals.allPRs.totalChanges * 100 * 100) / 100
+                : 0;
+            const filesPercentage = overallTotals.allPRs.totalFilesChanged > 0 
+                ? Math.round(overallTotals.copilotPRs.totalFilesChanged / overallTotals.allPRs.totalFilesChanged * 100 * 100) / 100
+                : 0;
+            
+            lines.push(`| **Total Lines Added** | ${overallTotals.allPRs.totalAdditions.toLocaleString()} | ${overallTotals.copilotPRs.totalAdditions.toLocaleString()} | ${additionsPercentage}% |`);
+            lines.push(`| **Total Lines Deleted** | ${overallTotals.allPRs.totalDeletions.toLocaleString()} | ${overallTotals.copilotPRs.totalDeletions.toLocaleString()} | ${deletionsPercentage}% |`);
+            lines.push(`| **Total Lines Changed** | ${overallTotals.allPRs.totalChanges.toLocaleString()} | ${overallTotals.copilotPRs.totalChanges.toLocaleString()} | ${changesPercentage}% |`);
+            lines.push(`| **Total Files Changed** | ${overallTotals.allPRs.totalFilesChanged.toLocaleString()} | ${overallTotals.copilotPRs.totalFilesChanged.toLocaleString()} | ${filesPercentage}% |`);
         }
     }
     

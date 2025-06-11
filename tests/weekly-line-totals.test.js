@@ -296,10 +296,10 @@ describe('Weekly Line Totals Functions', () => {
             
             expect(result).toContain('📊 Analysis Summary');
             expect(result).toContain('📝 Lines of Code Metrics:');
-            expect(result).toContain('| **Total Lines Added** | 375 | 100 |'); // 300 + 75 total, 100 copilot
-            expect(result).toContain('| **Total Lines Deleted** | 105 | 50 |'); // 80 + 25 total, 50 copilot
-            expect(result).toContain('| **Total Lines Changed** | 480 | 150 |'); // 380 + 100 total, 150 copilot
-            expect(result).toContain('| **Total Files Changed** | 16 | 5 |'); // 13 + 3 total, 5 copilot
+            expect(result).toContain('| **Total Lines Added** | 375 | 100 | 26.67% |'); // 100/375 * 100 = 26.67%
+            expect(result).toContain('| **Total Lines Deleted** | 105 | 50 | 47.62% |'); // 50/105 * 100 = 47.62%
+            expect(result).toContain('| **Total Lines Changed** | 480 | 150 | 31.25% |'); // 150/480 * 100 = 31.25%
+            expect(result).toContain('| **Total Files Changed** | 16 | 5 | 31.25% |'); // 5/16 * 100 = 31.25%
         });
 
         test('should handle results without weekly analysis', () => {
@@ -317,6 +317,75 @@ describe('Weekly Line Totals Functions', () => {
             
             expect(result).toContain('📊 Analysis Summary');
             expect(result).not.toContain('📝 Lines of Code Metrics:');
+        });
+
+        test('should handle zero division cases in percentage calculations', () => {
+            const mockResults = {
+                periodStart: new Date('2024-01-01').toISOString(),
+                periodEnd: new Date('2024-01-31').toISOString(),
+                analyzedUser: 'testuser',
+                analyzedRepository: 'testrepo',
+                totalRepositories: 1,
+                totalPRs: 1,
+                totalCopilotPRs: 0,
+                weeklyAnalysis: {
+                    '2024-W01': {
+                        pullRequests: [
+                            {
+                                lineChanges: {
+                                    additions: 0,
+                                    deletions: 0,
+                                    changes: 0,
+                                    filesChanged: 0
+                                },
+                                copilotAssisted: false
+                            }
+                        ]
+                    }
+                }
+            };
+            
+            const result = generateSummaryStats(mockResults);
+            
+            expect(result).toContain('📊 Analysis Summary');
+            // When all values are zero, the table should not be generated
+            expect(result).not.toContain('📝 Lines of Code Metrics:');
+        });
+
+        test('should calculate percentages correctly with zero copilot values', () => {
+            const mockResults = {
+                periodStart: new Date('2024-01-01').toISOString(),
+                periodEnd: new Date('2024-01-31').toISOString(),
+                analyzedUser: 'testuser',
+                analyzedRepository: 'testrepo',
+                totalRepositories: 1,
+                totalPRs: 1,
+                totalCopilotPRs: 0,
+                weeklyAnalysis: {
+                    '2024-W01': {
+                        pullRequests: [
+                            {
+                                lineChanges: {
+                                    additions: 100,
+                                    deletions: 50,
+                                    changes: 150,
+                                    filesChanged: 5
+                                },
+                                copilotAssisted: false
+                            }
+                        ]
+                    }
+                }
+            };
+            
+            const result = generateSummaryStats(mockResults);
+            
+            expect(result).toContain('📊 Analysis Summary');
+            expect(result).toContain('📝 Lines of Code Metrics:');
+            expect(result).toContain('| **Total Lines Added** | 100 | 0 | 0% |');
+            expect(result).toContain('| **Total Lines Deleted** | 50 | 0 | 0% |');
+            expect(result).toContain('| **Total Lines Changed** | 150 | 0 | 0% |');
+            expect(result).toContain('| **Total Files Changed** | 5 | 0 | 0% |');
         });
     });
 });
