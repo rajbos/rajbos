@@ -305,6 +305,28 @@ export class GitHubPRAnalyzer {
                 repos.push(...response);
                 page++;
             } catch (error) {
+                // Enhanced error logging
+                console.error(`Error fetching repositories for ${this.owner}:`);
+                console.error(`Status code: ${error.response?.status}`);
+                console.error(`Status text: ${error.response?.statusText}`);
+
+                // Log rate limit information if available
+                if (error.response?.headers) {
+                    const rateLimit = {
+                        limit: error.response.headers['x-ratelimit-limit'],
+                        remaining: error.response.headers['x-ratelimit-remaining'],
+                        reset: error.response.headers['x-ratelimit-reset'],
+                        used: error.response.headers['x-ratelimit-used']
+                    };
+                    console.error('Rate limit information:', rateLimit);
+
+                    // If rate limit is exhausted, provide more specific information
+                    if (rateLimit.remaining === '0') {
+                        const resetTime = new Date(rateLimit.reset * 1000).toISOString();
+                        console.error(`Rate limit exceeded. Resets at: ${resetTime}`);
+                    }
+                }
+
                 throw new Error(`Failed to fetch repositories for ${this.owner}: ${error.message}`);
             }
         }
