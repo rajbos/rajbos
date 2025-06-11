@@ -968,51 +968,58 @@ export class GitHubPRAnalyzer {
     async saveResults(results, outputFormat = 'json') {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
         
-        if (outputFormat.toLowerCase() === 'json') {
-            const filename = `${REPORT_FOLDER}pr_analysis_${timestamp}.json`;
-            await fs.writeFile(filename, JSON.stringify(results, null, 2));
-            return filename;
-        } else if (outputFormat.toLowerCase() === 'csv') {
-            const filename = `${REPORT_FOLDER}pr_analysis_${timestamp}.csv`;
-            const csvWriter = createCsvWriter.createObjectCsvWriter;
+        try {
+            // Ensure the report directory exists
+            await fs.mkdir(REPORT_FOLDER, { recursive: true });
             
-            // Prepare CSV data
-            const records = [];
-            for (const [week, data] of Object.entries(results.weeklyAnalysis)) {
-                records.push({
-                    Week: week,
-                    'Total PRs': data.totalPRs,
-                    'Copilot Assisted PRs': data.copilotAssistedPRs,
-                    'Copilot Review PRs': data.copilotReviewPRs,
-                    'Copilot Agent PRs': data.copilotAgentPRs,
-                    'Copilot Percentage': data.copilotPercentage,
-                    'Copilot Review Percentage': data.copilotReviewPercentage,
-                    'Copilot Agent Percentage': data.copilotAgentPercentage,
-                    'Unique Collaborators': data.uniqueCollaborators,
-                    'Collaborators': data.collaborators.join(', ')
+            if (outputFormat.toLowerCase() === 'json') {
+                const filename = `${REPORT_FOLDER}pr_analysis_${timestamp}.json`;
+                await fs.writeFile(filename, JSON.stringify(results, null, 2));
+                return filename;
+            } else if (outputFormat.toLowerCase() === 'csv') {
+                const filename = `${REPORT_FOLDER}pr_analysis_${timestamp}.csv`;
+                const csvWriter = createCsvWriter.createObjectCsvWriter;
+                
+                // Prepare CSV data
+                const records = [];
+                for (const [week, data] of Object.entries(results.weeklyAnalysis)) {
+                    records.push({
+                        Week: week,
+                        'Total PRs': data.totalPRs,
+                        'Copilot Assisted PRs': data.copilotAssistedPRs,
+                        'Copilot Review PRs': data.copilotReviewPRs,
+                        'Copilot Agent PRs': data.copilotAgentPRs,
+                        'Copilot Percentage': data.copilotPercentage,
+                        'Copilot Review Percentage': data.copilotReviewPercentage,
+                        'Copilot Agent Percentage': data.copilotAgentPercentage,
+                        'Unique Collaborators': data.uniqueCollaborators,
+                        'Collaborators': data.collaborators.join(', ')
+                    });
+                }
+                
+                const writer = csvWriter({
+                    path: filename,
+                    header: [
+                        {id: 'Week', title: 'Week'},
+                        {id: 'Total PRs', title: 'Total PRs'},
+                        {id: 'Copilot Assisted PRs', title: 'Copilot Assisted PRs'},
+                        {id: 'Copilot Review PRs', title: 'Copilot Review PRs'},
+                        {id: 'Copilot Agent PRs', title: 'Copilot Agent PRs'},
+                        {id: 'Copilot Percentage', title: 'Copilot Percentage'},
+                        {id: 'Copilot Review Percentage', title: 'Copilot Review Percentage'},
+                        {id: 'Copilot Agent Percentage', title: 'Copilot Agent Percentage'},
+                        {id: 'Unique Collaborators', title: 'Unique Collaborators'},
+                        {id: 'Collaborators', title: 'Collaborators'}
+                    ]
                 });
+                
+                await writer.writeRecords(records);
+                return filename;
+            } else {
+                throw new Error(`Unsupported output format: ${outputFormat}`);
             }
-            
-            const writer = csvWriter({
-                path: filename,
-                header: [
-                    {id: 'Week', title: 'Week'},
-                    {id: 'Total PRs', title: 'Total PRs'},
-                    {id: 'Copilot Assisted PRs', title: 'Copilot Assisted PRs'},
-                    {id: 'Copilot Review PRs', title: 'Copilot Review PRs'},
-                    {id: 'Copilot Agent PRs', title: 'Copilot Agent PRs'},
-                    {id: 'Copilot Percentage', title: 'Copilot Percentage'},
-                    {id: 'Copilot Review Percentage', title: 'Copilot Review Percentage'},
-                    {id: 'Copilot Agent Percentage', title: 'Copilot Agent Percentage'},
-                    {id: 'Unique Collaborators', title: 'Unique Collaborators'},
-                    {id: 'Collaborators', title: 'Collaborators'}
-                ]
-            });
-            
-            await writer.writeRecords(records);
-            return filename;
-        } else {
-            throw new Error(`Unsupported output format: ${outputFormat}`);
+        } catch (error) {
+            throw new Error(`Failed to save results: ${error.message}`);
         }
     }
 }
