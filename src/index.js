@@ -89,6 +89,8 @@ async function runAnalysis(options) {
         console.log(`Total repositories analyzed: [${results.totalRepositories}]`);
         console.log(`Total PRs analyzed: [${results.totalPRs}]`);
         console.log(`Copilot-assisted PRs: [${results.totalCopilotPRs}]`);
+        console.log(`Copilot-triggered Actions runs: [${results.totalActionsRuns}]`);
+        console.log(`Copilot Actions minutes used: [${results.totalActionsMinutes}]`);
         if (results.totalPRs > 0) {
             const overallCopilotPercentage = Math.round(results.totalCopilotPRs / results.totalPRs * 100 * 100) / 100;
             console.log(`Overall Copilot Usage on PRs: [${overallCopilotPercentage}]%`);
@@ -104,6 +106,9 @@ async function runAnalysis(options) {
                 console.log(`  - Agent: ${data.copilotAgentPRs} PRs (${data.copilotAgentPercentage}%)`);
             }
             console.log(`  - Collaborators: ${data.uniqueCollaborators} (${data.collaborators.join(', ')})`);
+            if (data.actionsUsage && data.actionsUsage.totalRuns > 0) {
+                console.log(`  - Actions: ${data.actionsUsage.totalRuns} runs (${data.actionsUsage.totalMinutes} minutes)`);
+            }
         }
         
         // Print commit count summary for Copilot PRs

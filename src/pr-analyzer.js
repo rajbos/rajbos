@@ -708,7 +708,6 @@ export class GitHubPRAnalyzer {
         
         for (const repo of repositories) {
             const repoFullName = repo.full_name;
-            const repoName = repo.name;
             
             // Skip repository if it's in the skip list
             if (this.shouldSkipRepositoryByOrg(repoFullName, skippedOrgs)) {
@@ -839,8 +838,75 @@ export class GitHubPRAnalyzer {
                     
                     weeklyData[weekKey].pullRequests.push(prDetails);
                 }
+                
+                // Analyze GitHub Actions usage for Copilot-triggered runs
+                if (shouldShowAnalysisMessage(isPrivate)) {
+                    console.log(`  Analyzing GitHub Actions usage for [${maskedRepoName}]`);
+                }
+                
+                try {
+                    const actionsUsage = await this.analyzeActionsUsage(repoFullName, since);
+                    
+                    if (actionsUsage.totalRuns > 0) {
+                        if (shouldShowAnalysisMessage(isPrivate)) {
+                            console.log(`  Found ${actionsUsage.totalRuns} Copilot-triggered workflow runs using ${actionsUsage.totalMinutes} minutes in [${maskedRepoName}]`);
+                        }
+                        
+                        // Add actions usage to weekly data
+                        for (const runDetail of actionsUsage.runDetails) {
+                            const runCreatedAt = new Date(runDetail.createdAt);
+                            const runWeekKey = this.getWeekKey(runCreatedAt);
+                            
+                            if (!weeklyData[runWeekKey]) {
+                                weeklyData[runWeekKey] = {
+                                    totalPRs: 0,
+                                    copilotAssistedPRs: 0,
+                                    copilotReviewPRs: 0,
+                                    copilotAgentPRs: 0,
+                                    collaborators: new Set(),
+                                    repositories: new Set(),
+                                    pullRequests: [],
+                                    actionsUsage: {
+                                        totalMinutes: 0,
+                                        totalRuns: 0,
+                                        runDetails: []
+                                    }
+                                };
+                            }
+                            
+                            // Initialize actions usage if not present
+                            if (!weeklyData[runWeekKey].actionsUsage) {
+                                weeklyData[runWeekKey].actionsUsage = {
+                                    totalMinutes: 0,
+                                    totalRuns: 0,
+                                    runDetails: []
+                                };
+                            }
+                            
+                            weeklyData[runWeekKey].actionsUsage.totalMinutes += runDetail.minutes;
+                            weeklyData[runWeekKey].actionsUsage.totalRuns++;
+                            weeklyData[runWeekKey].actionsUsage.runDetails.push({
+                                ...runDetail,
+                                repository: maskedRepoName
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.log(`Warning: Could not analyze GitHub Actions for ${maskedRepoName}: ${error.message}`);
+                }
             } catch (error) {
                 console.error(`Error analyzing repository [${maskedRepoName}]: ${error.message}`);
+            }
+        }
+        
+        // Calculate totals for Actions usage
+        let totalActionsMinutes = 0;
+        let totalActionsRuns = 0;
+        
+        for (const [, data] of Object.entries(weeklyData)) {
+            if (data.actionsUsage) {
+                totalActionsMinutes += data.actionsUsage.totalMinutes;
+                totalActionsRuns += data.actionsUsage.totalRuns;
             }
         }
         
@@ -850,6 +916,8 @@ export class GitHubPRAnalyzer {
         console.log(`- Dependabot PRs excluded: ${totalDependabotPRs}`);
         console.log(`- Copilot-assisted PRs: ${totalCopilotPRs}`);
         console.log(`- Repositories analyzed: ${totalRepositories}`);
+        console.log(`- Copilot-triggered Actions runs: ${totalActionsRuns}`);
+        console.log(`- Copilot Actions minutes used: ${totalActionsMinutes}`);
         
         // Calculate percentages and prepare final data
         const finalWeeklyData = {};
@@ -869,7 +937,12 @@ export class GitHubPRAnalyzer {
                 uniqueCollaborators: data.collaborators.size,
                 collaborators: Array.from(data.collaborators),
                 repositories: Array.from(data.repositories),
-                pullRequests: data.pullRequests
+                pullRequests: data.pullRequests,
+                actionsUsage: data.actionsUsage || {
+                    totalMinutes: 0,
+                    totalRuns: 0,
+                    runDetails: []
+                }
             };
         }
         
@@ -885,6 +958,8 @@ export class GitHubPRAnalyzer {
             totalCopilotAgentPRs: totalCopilotAgentPRs,
             totalDependabotPRs: totalDependabotPRs,
             totalRepositories: totalRepositories,
+            totalActionsMinutes: totalActionsMinutes,
+            totalActionsRuns: totalActionsRuns,
             weeklyAnalysis: finalWeeklyData
         };
     }
@@ -916,7 +991,9 @@ export class GitHubPRAnalyzer {
                     'Copilot Review Percentage': data.copilotReviewPercentage,
                     'Copilot Agent Percentage': data.copilotAgentPercentage,
                     'Unique Collaborators': data.uniqueCollaborators,
-                    'Collaborators': data.collaborators.join(', ')
+                    'Collaborators': data.collaborators.join(', '),
+                    'Actions Minutes': data.actionsUsage.totalMinutes,
+                    'Actions Runs': data.actionsUsage.totalRuns
                 });
             }
             
@@ -932,7 +1009,9 @@ export class GitHubPRAnalyzer {
                     {id: 'Copilot Review Percentage', title: 'Copilot Review Percentage'},
                     {id: 'Copilot Agent Percentage', title: 'Copilot Agent Percentage'},
                     {id: 'Unique Collaborators', title: 'Unique Collaborators'},
-                    {id: 'Collaborators', title: 'Collaborators'}
+                    {id: 'Collaborators', title: 'Collaborators'},
+                    {id: 'Actions Minutes', title: 'Actions Minutes'},
+                    {id: 'Actions Runs', title: 'Actions Runs'}
                 ]
             });
             
@@ -941,5 +1020,149 @@ export class GitHubPRAnalyzer {
         } else {
             throw new Error(`Unsupported output format: ${outputFormat}`);
         }
+    }
+
+    /**
+     * Fetch workflow runs for a repository.
+     */
+    async getRepositoryWorkflowRuns(repoFullName, since) {
+        const runs = [];
+        let page = 1;
+        const perPage = 100;
+        
+        while (true) {
+            const cacheKey = `workflow_runs_${repoFullName}_${since.toISOString()}_${page}`;
+            let response = this.cache.get(cacheKey);
+            
+            if (!response) {
+                try {
+                    const apiResponse = await this._makeApiRequestWithRetry(
+                        () => this.api.get(`/repos/${repoFullName}/actions/runs`, {
+                            params: {
+                                per_page: perPage,
+                                page: page,
+                                created: `>=${since.toISOString()}`
+                            }
+                        }),
+                        `workflow runs for ${repoFullName} (page ${page})`
+                    );
+                    response = apiResponse.data;
+                    this.cache.set(cacheKey, response);
+                } catch (error) {
+                    console.log(`Warning: Could not fetch workflow runs for ${repoFullName}: ${error.message}`);
+                    break;
+                }
+            }
+            
+            if (response.workflow_runs.length === 0) {
+                break;
+            }
+            
+            runs.push(...response.workflow_runs);
+            page++;
+        }
+        
+        return runs;
+    }
+
+    /**
+     * Fetch jobs for a specific workflow run.
+     */
+    async getWorkflowRunJobs(repoFullName, runId) {
+        const cacheKey = `workflow_jobs_${repoFullName}_${runId}`;
+        let response = this.cache.get(cacheKey);
+        
+        if (!response) {
+            try {
+                const apiResponse = await this._makeApiRequestWithRetry(
+                    () => this.api.get(`/repos/${repoFullName}/actions/runs/${runId}/jobs`),
+                    `jobs for workflow run ${runId} in ${repoFullName}`
+                );
+                response = apiResponse.data;
+                this.cache.set(cacheKey, response);
+            } catch (error) {
+                console.log(`Warning: Could not fetch jobs for workflow run ${runId} in ${repoFullName}: ${error.message}`);
+                return { jobs: [] };
+            }
+        }
+        
+        return response;
+    }
+
+    /**
+     * Check if a workflow run was triggered by Copilot.
+     */
+    isCopilotTriggeredRun(workflowRun) {
+        const actor = workflowRun.actor?.login?.toLowerCase() || '';
+        const triggeringActor = workflowRun.triggering_actor?.login?.toLowerCase() || '';
+        
+        // Check for known Copilot actor names
+        const copilotActors = [
+            'copilot',
+            'copilot-swe-agent',
+            'github-copilot[bot]',
+            'copilot[bot]'
+        ];
+        
+        return copilotActors.some(copilotActor => 
+            actor === copilotActor || triggeringActor === copilotActor
+        );
+    }
+
+    /**
+     * Calculate action minutes for a workflow run.
+     */
+    calculateActionMinutes(jobs) {
+        let totalMinutes = 0;
+        
+        for (const job of jobs) {
+            if (job.started_at && job.completed_at) {
+                const startTime = new Date(job.started_at);
+                const endTime = new Date(job.completed_at);
+                const durationMs = endTime - startTime;
+                const durationMinutes = Math.ceil(durationMs / (1000 * 60)); // Round up to nearest minute
+                totalMinutes += durationMinutes;
+            }
+        }
+        
+        return totalMinutes;
+    }
+
+    /**
+     * Analyze GitHub Actions usage for Copilot-triggered runs.
+     */
+    async analyzeActionsUsage(repoFullName, since) {
+        const workflowRuns = await this.getRepositoryWorkflowRuns(repoFullName, since);
+        const copilotRuns = workflowRuns.filter(run => this.isCopilotTriggeredRun(run));
+        
+        let totalMinutes = 0;
+        let totalRuns = 0;
+        const runDetails = [];
+        
+        for (const run of copilotRuns) {
+            const jobsResponse = await this.getWorkflowRunJobs(repoFullName, run.id);
+            const jobs = jobsResponse.jobs || [];
+            const runMinutes = this.calculateActionMinutes(jobs);
+            
+            totalMinutes += runMinutes;
+            totalRuns++;
+            
+            runDetails.push({
+                id: run.id,
+                name: run.name,
+                actor: run.actor?.login,
+                triggeringActor: run.triggering_actor?.login,
+                createdAt: run.created_at,
+                minutes: runMinutes,
+                status: run.status,
+                conclusion: run.conclusion
+            });
+        }
+        
+        return {
+            totalMinutes,
+            totalRuns,
+            runDetails
+        };
     }
 }
