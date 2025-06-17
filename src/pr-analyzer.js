@@ -1101,7 +1101,8 @@ export class GitHubPRAnalyzer {
             'copilot',
             'copilot-swe-agent',
             'github-copilot[bot]',
-            'copilot[bot]'
+            'copilot[bot]',
+            'copilot-pull-request-reviewer[bot]'
         ];
         
         return copilotActors.some(copilotActor => 

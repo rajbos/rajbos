@@ -19,6 +19,10 @@ describe('GitHubPRAnalyzer - GitHub Actions Basic Tests', () => {
         })).toBe(true);
 
         expect(analyzer.isCopilotTriggeredRun({
+            actor: { login: 'copilot-pull-request-reviewer[bot]' }
+        })).toBe(true);
+
+        expect(analyzer.isCopilotTriggeredRun({
             actor: { login: 'regularuser' }
         })).toBe(false);
     });
