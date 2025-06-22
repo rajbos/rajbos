@@ -3,6 +3,7 @@ import NodeCache from 'node-cache';
 import fs from 'fs/promises';
 import path from 'path';
 import createCsvWriter from 'csv-writer';
+import { REPORT_FOLDER } from './constants.js';
 
 /**
  * Check if the script is running in a CI environment (GitHub Actions).
@@ -95,15 +96,33 @@ export class GitHubPRAnalyzer {
      * @param {Function} requestFn - Function that makes the actual API request
      * @param {string} context - Context description for logging
      * @param {number} maxRetries - Maximum number of retries (default: 3)
-     * @returns {Promise} - Promise that resolves to the API response
+     * @param {boolean} useCache - Whether to use cache (default: true)
+     * @param {string} cacheKey - Key to use for caching (required if useCache is true)
+     * @returns {Promise} - Promise that resolves to the API response data
      */
-    async _makeApiRequestWithRetry(requestFn, context = 'API request', maxRetries = 3) {
+    async _makeApiRequestWithRetry(requestFn, context = 'API request', maxRetries = 3, useCache = true, cacheKey = null) {
+        // Check cache if enabled
+        if (useCache) {
+            if (!cacheKey) {
+                throw new Error('Cache key is required when using cache');
+            }
+            const cachedData = this.cache.get(cacheKey);
+            if (cachedData) {
+                console.log(`Using cached data for [${requestFn.toString()}]`);
+                return cachedData;
+            }
+        }
+
         let lastError;
         
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
                 const response = await requestFn();
-                return response;
+                // Store in cache if enabled
+                if (useCache && cacheKey) {
+                    this.cache.set(cacheKey, response.data);
+                }
+                return response.data;
             } catch (error) {
                 lastError = error;
                 
@@ -220,14 +239,16 @@ export class GitHubPRAnalyzer {
      */
     async getRateLimitInfo() {
         try {
+            const cacheKey = 'rate_limit_info';
             const response = await this._makeApiRequestWithRetry(
-                () => axios.get(`${this.baseUrl}/rate_limit`, {
-                    headers: this.headers
-                }),
-                'rate limit info'
+                () => this.api.get('/rate_limit'),
+                'rate limit info',
+                3, // maxRetries
+                true, // useCache
+                cacheKey
             );
             
-            const rateLimitData = response.data;
+            const rateLimitData = response;
             const resetTimestamp = rateLimitData.rate.reset;
             const resetDateTime = new Date(resetTimestamp * 1000);
             const currentTime = new Date();
@@ -261,34 +282,53 @@ export class GitHubPRAnalyzer {
         
         while (true) {
             const cacheKey = `repos_${this.owner}_${page}`;
-            let response = this.cache.get(cacheKey);
-            
-            if (!response) {
-                try {
-                    const apiResponse = await this._makeApiRequestWithRetry(
-                        () => this.api.get(`/users/${this.owner}/repos`, {
-                            params: {
-                                type: 'all',
-                                sort: 'updated',
-                                per_page: perPage,
-                                page: page
-                            }
-                        }),
-                        `repositories for ${this.owner} (page ${page})`
-                    );
-                    response = apiResponse.data;
-                    this.cache.set(cacheKey, response);
-                } catch (error) {
-                    throw new Error(`Failed to fetch repositories for ${this.owner}: ${error.message}`);
+            try {
+                const response = await this._makeApiRequestWithRetry(
+                    () => this.api.get(`/users/${this.owner}/repos`, {
+                        params: {
+                            type: 'all',
+                            sort: 'updated',
+                            per_page: perPage,
+                            page: page
+                        }
+                    }),
+                    `repositories for ${this.owner} (page ${page})`,
+                    3,  // maxRetries
+                    true, // useCache
+                    cacheKey
+                );
+
+                if (!response || response.length === 0) {
+                    break;
                 }
+
+                repos.push(...response);
+                page++;
+            } catch (error) {
+                // Enhanced error logging
+                console.error(`Error fetching repositories for ${this.owner}:`);
+                console.error(`Status code: ${error.response?.status}`);
+                console.error(`Status text: ${error.response?.statusText}`);
+
+                // Log rate limit information if available
+                if (error.response?.headers) {
+                    const rateLimit = {
+                        limit: error.response.headers['x-ratelimit-limit'],
+                        remaining: error.response.headers['x-ratelimit-remaining'],
+                        reset: error.response.headers['x-ratelimit-reset'],
+                        used: error.response.headers['x-ratelimit-used']
+                    };
+                    console.error('Rate limit information:', rateLimit);
+
+                    // If rate limit is exhausted, provide more specific information
+                    if (rateLimit.remaining === '0') {
+                        const resetTime = new Date(rateLimit.reset * 1000).toISOString();
+                        console.error(`Rate limit exceeded. Resets at: ${resetTime}`);
+                    }
+                }
+
+                throw new Error(`Failed to fetch repositories for ${this.owner}: ${error.message}`);
             }
-            
-            if (response.length === 0) {
-                break;
-            }
-            
-            repos.push(...response);
-            page++;
         }
         
         return repos;
@@ -358,52 +398,49 @@ export class GitHubPRAnalyzer {
         
         while (true) {
             const cacheKey = `pulls_${repo}_${since.toISOString()}_${page}`;
-            let response = this.cache.get(cacheKey);
-            
-            if (!response) {
-                try {
-                    const apiResponse = await this._makeApiRequestWithRetry(
-                        () => this.api.get(`/repos/${repo}/pulls`, {
-                            params: {
-                                state: 'all',
-                                since: since.toISOString(),
-                                per_page: perPage,
-                                page: page,
-                                sort: 'updated',
-                                direction: 'desc'
-                            }
-                        }),
-                        `pull requests for ${repo} (page ${page})`
-                    );
-                    response = apiResponse.data;
-                    this.cache.set(cacheKey, response);
-                } catch (error) {
-                    if (error.response?.status === 404) {
-                        console.log(`Repository ${repo} not found or not accessible`);
-                        return [];
-                    }
-                    throw new Error(`Failed to fetch pull requests for ${repo}: ${error.message}`);
+            try {
+                const response = await this._makeApiRequestWithRetry(
+                    () => this.api.get(`/repos/${repo}/pulls`, {
+                        params: {
+                            state: 'all',
+                            since: since.toISOString(),
+                            per_page: perPage,
+                            page: page,
+                            sort: 'updated',
+                            direction: 'desc'
+                        }
+                    }),
+                    `pull requests for ${repo} (page ${page})`,
+                    3, // maxRetries
+                    true, // useCache
+                    cacheKey
+                );
+
+                if (!response || response.length === 0) {
+                    break;
                 }
+
+                // Filter PRs that are actually within our date range
+                const filteredPRs = response.filter(pr => {
+                    const createdAt = new Date(pr.created_at);
+                    return createdAt >= since;
+                });
+
+                pulls.push(...filteredPRs);
+
+                // If we got fewer results than requested or the last PR is older than our cutoff, we're done
+                if (response.length < perPage || filteredPRs.length < response.length) {
+                    break;
+                }
+
+                page++;
+            } catch (error) {
+                if (error.response?.status === 404) {
+                    console.log(`Repository ${repo} not found or not accessible`);
+                    return [];
+                }
+                throw new Error(`Failed to fetch pull requests for ${repo}: ${error.message}`);
             }
-            
-            if (response.length === 0) {
-                break;
-            }
-            
-            // Filter PRs that are actually within our date range
-            const filteredPRs = response.filter(pr => {
-                const createdAt = new Date(pr.created_at);
-                return createdAt >= since;
-            });
-            
-            pulls.push(...filteredPRs);
-            
-            // If we got fewer results than requested or the last PR is older than our cutoff, we're done
-            if (response.length < perPage || filteredPRs.length < response.length) {
-                break;
-            }
-            
-            page++;
         }
         
         return pulls;
@@ -414,23 +451,19 @@ export class GitHubPRAnalyzer {
      */
     async getPRReviews(repo, prNumber) {
         const cacheKey = `reviews_${repo}_${prNumber}`;
-        let reviews = this.cache.get(cacheKey);
-        
-        if (!reviews) {
-            try {
-                const response = await this._makeApiRequestWithRetry(
-                    () => this.api.get(`/repos/${repo}/pulls/${prNumber}/reviews`),
-                    `reviews for PR #${prNumber} in ${repo}`
-                );
-                reviews = response.data;
-                this.cache.set(cacheKey, reviews);
-            } catch (error) {
-                console.log(`Warning: Could not fetch reviews for PR #${prNumber}: ${error.message}`);
-                return [];
-            }
+        try {
+            const reviews = await this._makeApiRequestWithRetry(
+                () => this.api.get(`/repos/${repo}/pulls/${prNumber}/reviews`),
+                `reviews for PR #${prNumber} in ${repo}`,
+                3, // maxRetries
+                true, // useCache
+                cacheKey
+            );
+            return reviews || [];
+        } catch (error) {
+            console.log(`Warning: Could not fetch reviews for PR #${prNumber}: ${error.message}`);
+            return [];
         }
-        
-        return reviews;
     }
 
     /**
@@ -438,23 +471,19 @@ export class GitHubPRAnalyzer {
      */
     async getPRCommits(repo, prNumber) {
         const cacheKey = `commits_${repo}_${prNumber}`;
-        let commits = this.cache.get(cacheKey);
-        
-        if (!commits) {
-            try {
-                const response = await this._makeApiRequestWithRetry(
-                    () => this.api.get(`/repos/${repo}/pulls/${prNumber}/commits`),
-                    `commits for PR #${prNumber} in ${repo}`
-                );
-                commits = response.data;
-                this.cache.set(cacheKey, commits);
-            } catch (error) {
-                console.log(`Warning: Could not fetch commits for PR #${prNumber}: ${error.message}`);
-                return [];
-            }
+        try {
+            const commits = await this._makeApiRequestWithRetry(
+                () => this.api.get(`/repos/${repo}/pulls/${prNumber}/commits`),
+                `commits for PR #${prNumber} in ${repo}`,
+                3, // maxRetries
+                true, // useCache
+                cacheKey
+            );
+            return commits || [];
+        } catch (error) {
+            console.log(`Warning: Could not fetch commits for PR #${prNumber}: ${error.message}`);
+            return [];
         }
-        
-        return commits;
     }
 
     /**
@@ -462,20 +491,19 @@ export class GitHubPRAnalyzer {
      */
     async getPRFiles(repo, prNumber) {
         const cacheKey = `files_${repo}_${prNumber}`;
-        let files = this.cache.get(cacheKey);
-        
-        if (!files) {
-            try {
-                const response = await this.api.get(`/repos/${repo}/pulls/${prNumber}/files`);
-                files = response.data;
-                this.cache.set(cacheKey, files);
-            } catch (error) {
-                console.log(`Warning: Could not fetch files for PR #${prNumber}: ${error.message}`);
-                return [];
-            }
+        try {
+            const files = await this._makeApiRequestWithRetry(
+                () => this.api.get(`/repos/${repo}/pulls/${prNumber}/files`),
+                `files for PR #${prNumber} in ${repo}`,
+                3, // maxRetries
+                true, // useCache
+                cacheKey
+            );
+            return files || [];
+        } catch (error) {
+            console.log(`Warning: Could not fetch files for PR #${prNumber}: ${error.message}`);
+            return [];
         }
-        
-        return files;
     }
 
     /**
@@ -736,7 +764,7 @@ export class GitHubPRAnalyzer {
                     repositoryNames.add(maskedRepoName);
                     
                     if (shouldShowAnalysisMessage(isPrivate)) {
-                        console.log(`  Found ${pulls.length} PRs in [${maskedRepoName}]`);
+                        console.log(`  Found ${pulls.length} PRs to analyze in [${maskedRepoName}]`);
                     }
                 }
                 
@@ -745,6 +773,34 @@ export class GitHubPRAnalyzer {
                     const isDependabot = this.detectDependabotPR(pr);
                     if (isDependabot) {
                         totalDependabotPRs++;
+                        continue;
+                    }
+
+                    // Check if authenticated user is involved in the PR
+                    let isUserInvolved = false;
+
+                    // Check author
+                    if (pr.user && pr.user.login === this.owner) {
+                        isUserInvolved = true;
+                    }
+
+                    // Check assignees
+                    if (!isUserInvolved && pr.assignees && Array.isArray(pr.assignees)) {
+                        isUserInvolved = pr.assignees.some(assignee => assignee.login === this.owner);
+                    }
+
+                    // Check reviewers
+                    if (!isUserInvolved) {
+                        try {
+                            const reviews = await this.getPRReviews(pr.base.repo.full_name, pr.number);
+                            isUserInvolved = reviews.some(review => review.user && review.user.login === this.owner);
+                        } catch (error) {
+                            console.log(`Warning: Could not fetch reviews for PR #${pr.number}: ${error.message}`);
+                        }
+                    }
+
+                    // Skip PR if authenticated user is not involved
+                    if (!isUserInvolved) {
                         continue;
                     }
                     
@@ -765,15 +821,38 @@ export class GitHubPRAnalyzer {
                     
                     weeklyData[weekKey].totalPRs++;
                     totalPRs++;
-                    
+
                     // Add author to collaborators
                     if (pr.user && pr.user.login) {
                         allCollaborators.add(pr.user.login);
                         weeklyData[weekKey].collaborators.add(pr.user.login);
                     }
                     
+                    // Add assignees to collaborators
+                    if (pr.assignees && Array.isArray(pr.assignees)) {
+                        for (const assignee of pr.assignees) {
+                            if (assignee.login) {
+                                allCollaborators.add(assignee.login);
+                                weeklyData[weekKey].collaborators.add(assignee.login);
+                            }
+                        }
+                    }
+
+                    // Add reviewers to collaborators
+                    try {
+                        const reviews = await this.getPRReviews(pr.base.repo.full_name, pr.number);
+                        for (const review of reviews) {
+                            if (review.user && review.user.login) {
+                                allCollaborators.add(review.user.login);
+                                weeklyData[weekKey].collaborators.add(review.user.login);
+                            }
+                        }
+                    } catch (error) {
+                        console.log(`Warning: Could not fetch reviews for PR #${pr.number}: ${error.message}`);
+                    }
+
                     weeklyData[weekKey].repositories.add(maskedRepoName);
-                    
+
                     // Detect Copilot collaboration
                     const copilotType = await this.detectCopilotCollaboration(pr);
                     
@@ -823,9 +902,30 @@ export class GitHubPRAnalyzer {
                         copilotAssisted: copilotAssisted,
                         copilotType: copilotType,
                         dependabotPr: false, // Always false since we exclude Dependabot PRs
-                        url: pr.html_url
+                        url: pr.html_url,
+                        collaborators: new Set([
+                            // Add author
+                            pr.user ? pr.user.login : null,
+                            // Add assignees
+                            ...(pr.assignees || []).map(assignee => assignee.login)
+                        ])
                     };
                     
+                    // Add reviewers to PR collaborators
+                    try {
+                        const reviews = await this.getPRReviews(pr.base.repo.full_name, pr.number);
+                        for (const review of reviews) {
+                            if (review.user && review.user.login) {
+                                prDetails.collaborators.add(review.user.login);
+                            }
+                        }
+                    } catch (error) {
+                        console.log(`Warning: Could not fetch reviews for PR #${pr.number}: ${error.message}`);
+                    }
+
+                    // Convert collaborators Set to Array and remove nulls
+                    prDetails.collaborators = Array.from(prDetails.collaborators).filter(Boolean);
+
                     // Add commit counts for Copilot PRs
                     if (commitCounts) {
                         prDetails.commitCounts = commitCounts;
@@ -970,55 +1070,64 @@ export class GitHubPRAnalyzer {
     async saveResults(results, outputFormat = 'json') {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
         
-        if (outputFormat.toLowerCase() === 'json') {
-            const filename = `pr_analysis_${timestamp}.json`;
-            await fs.writeFile(filename, JSON.stringify(results, null, 2));
-            return filename;
-        } else if (outputFormat.toLowerCase() === 'csv') {
-            const filename = `pr_analysis_${timestamp}.csv`;
-            const csvWriter = createCsvWriter.createObjectCsvWriter;
+        try {
+            // Ensure the report directory exists
+            await fs.mkdir(REPORT_FOLDER, { recursive: true });
             
-            // Prepare CSV data
-            const records = [];
-            for (const [week, data] of Object.entries(results.weeklyAnalysis)) {
-                records.push({
-                    Week: week,
-                    'Total PRs': data.totalPRs,
-                    'Copilot Assisted PRs': data.copilotAssistedPRs,
-                    'Copilot Review PRs': data.copilotReviewPRs,
-                    'Copilot Agent PRs': data.copilotAgentPRs,
-                    'Copilot Percentage': data.copilotPercentage,
-                    'Copilot Review Percentage': data.copilotReviewPercentage,
-                    'Copilot Agent Percentage': data.copilotAgentPercentage,
-                    'Unique Collaborators': data.uniqueCollaborators,
-                    'Collaborators': data.collaborators.join(', '),
-                    'Actions Minutes': data.actionsUsage.totalMinutes,
-                    'Actions Runs': data.actionsUsage.totalRuns
+            if (outputFormat.toLowerCase() === 'json') {
+                const filename = `${REPORT_FOLDER}pr_analysis_${timestamp}.json`;
+                await fs.writeFile(filename, JSON.stringify(results, null, 2));
+                return filename;
+            } else if (outputFormat.toLowerCase() === 'csv') {
+                const filename = `${REPORT_FOLDER}pr_analysis_${timestamp}.csv`;
+                const csvWriter = createCsvWriter.createObjectCsvWriter;
+                
+                // Prepare CSV data
+                const records = [];
+                for (const [week, data] of Object.entries(results.weeklyAnalysis)) {
+                    records.push({
+                        Week: week,
+                        'Total PRs': data.totalPRs,
+                        'Copilot Assisted PRs': data.copilotAssistedPRs,
+                        'Copilot Review PRs': data.copilotReviewPRs,
+                        'Copilot Agent PRs': data.copilotAgentPRs,
+                        'Copilot Percentage': data.copilotPercentage,
+                        'Copilot Review Percentage': data.copilotReviewPercentage,
+                        'Copilot Agent Percentage': data.copilotAgentPercentage,
+                        'Unique Collaborators': data.uniqueCollaborators,
+                        'Collaborators': data.collaborators.join(', '),
+                        'Actions Minutes': data.actionsUsage.totalMinutes,
+                        'Actions Runs': data.actionsUsage.totalRuns
+                    });
+                }
+                
+                const writer = csvWriter({
+                    path: filename,
+                    header: [
+                        {id: 'Week', title: 'Week'},
+                        {id: 'Total PRs', title: 'Total PRs'},
+                        {id: 'Copilot Assisted PRs', title: 'Copilot Assisted PRs'},
+                        {id: 'Copilot Review PRs', title: 'Copilot Review PRs'},
+                        {id: 'Copilot Agent PRs', title: 'Copilot Agent PRs'},
+                        {id: 'Copilot Percentage', title: 'Copilot Percentage'},
+                        {id: 'Copilot Review Percentage', title: 'Copilot Review Percentage'},
+                        {id: 'Copilot Agent Percentage', title: 'Copilot Agent Percentage'},
+                        {id: 'Unique Collaborators', title: 'Unique Collaborators'},
+                        {id: 'Collaborators', title: 'Collaborators'},
+                        {id: 'Actions Minutes', title: 'Actions Minutes'},
+                        {id: 'Actions Runs', title: 'Actions Runs'}
+                    ]
                 });
+                
+                await writer.writeRecords(records);
+                return filename;
+            } else {
+                throw new Error(`Unsupported output format: ${outputFormat}`);
             }
-            
-            const writer = csvWriter({
-                path: filename,
-                header: [
-                    {id: 'Week', title: 'Week'},
-                    {id: 'Total PRs', title: 'Total PRs'},
-                    {id: 'Copilot Assisted PRs', title: 'Copilot Assisted PRs'},
-                    {id: 'Copilot Review PRs', title: 'Copilot Review PRs'},
-                    {id: 'Copilot Agent PRs', title: 'Copilot Agent PRs'},
-                    {id: 'Copilot Percentage', title: 'Copilot Percentage'},
-                    {id: 'Copilot Review Percentage', title: 'Copilot Review Percentage'},
-                    {id: 'Copilot Agent Percentage', title: 'Copilot Agent Percentage'},
-                    {id: 'Unique Collaborators', title: 'Unique Collaborators'},
-                    {id: 'Collaborators', title: 'Collaborators'},
-                    {id: 'Actions Minutes', title: 'Actions Minutes'},
-                    {id: 'Actions Runs', title: 'Actions Runs'}
-                ]
-            });
-            
-            await writer.writeRecords(records);
-            return filename;
         } else {
             throw new Error(`Unsupported output format: ${outputFormat}`);
+        } catch (error) {
+            throw new Error(`Failed to save results: ${error.message}`);
         }
     }
 

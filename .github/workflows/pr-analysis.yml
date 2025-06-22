@@ -66,6 +66,21 @@ jobs:
           rm -rf .http_cache
           echo "Cache directory cleaned. A fresh cache will be created during analysis."
       
+      - name: Validate GitHub token
+        run: |
+          echo "Validating GitHub token permissions..."
+          TOKEN_TEST=$(curl -s -H "Authorization: token ${{ secrets.GH_PAT }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/user)
+          if echo "$TOKEN_TEST" | grep -q "login"; then
+            echo "✓ Token is valid and can authenticate"
+            echo "Token scopes: $(curl -s -I -H "Authorization: token ${{ secrets.GH_PAT }}" \
+              https://api.github.com/user | grep x-oauth-scopes)"
+          else
+            echo "✗ Token validation failed"
+            exit 1
+          fi
+
       - name: Run PR analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
