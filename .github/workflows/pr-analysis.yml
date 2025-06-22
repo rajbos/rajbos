@@ -69,15 +69,63 @@ jobs:
       - name: Validate GitHub token
         run: |
           echo "Validating GitHub token permissions..."
-          TOKEN_TEST=$(curl -s -H "Authorization: token ${{ secrets.GH_PAT }}" \
+          
+          # Get response with status code
+          RESPONSE=$(curl -s -w "\n%{http_code}" -H "Authorization: token ${{ secrets.GH_PAT }}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/user)
-          if echo "$TOKEN_TEST" | grep -q "login"; then
+          
+          # Extract status code (last line) and body (everything except last line)
+          STATUS_CODE=$(echo "$RESPONSE" | tail -n1)
+          RESPONSE_BODY=$(echo "$RESPONSE" | head -n -1)
+          
+          if [ "$STATUS_CODE" = "200" ] && echo "$RESPONSE_BODY" | grep -q "login"; then
             echo "✓ Token is valid and can authenticate"
             echo "Token scopes: $(curl -s -I -H "Authorization: token ${{ secrets.GH_PAT }}" \
               https://api.github.com/user | grep x-oauth-scopes)"
           else
             echo "✗ Token validation failed"
+            echo "HTTP Status Code: [$STATUS_CODE]"
+            echo "Response Body: [$RESPONSE_BODY]"
+            
+            # Get and show headers for additional context (rate limits, etc.)
+            echo "Getting response headers for additional context..."
+            HEADERS=$(curl -s -I -H "Authorization: token ${{ secrets.GH_PAT }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/user)
+            
+            # Show rate limit headers if present
+            if echo "$HEADERS" | grep -i "x-ratelimit" > /dev/null; then
+              echo "Rate limit information:"
+              echo "$HEADERS" | grep -i "x-ratelimit"
+            fi
+            
+            # Show retry-after header if present
+            if echo "$HEADERS" | grep -i "retry-after" > /dev/null; then
+              echo "Retry information:"
+              echo "$HEADERS" | grep -i "retry-after"
+            fi
+            
+            # Provide actionable guidance based on status code
+            case "$STATUS_CODE" in
+              401)
+                echo "❌ Error: Unauthorized - Token may be invalid or expired"
+                echo "💡 Action: Check that the GH_PAT secret is set correctly and the token is valid"
+                ;;
+              403)
+                echo "❌ Error: Forbidden - Token may lack required permissions"
+                echo "💡 Action: Ensure the token has 'repo' and 'user' scopes"
+                ;;
+              429)
+                echo "❌ Error: Rate limited"
+                echo "💡 Action: Wait for rate limit to reset or check if too many requests are being made"
+                ;;
+              *)
+                echo "❌ Error: Unexpected status code [$STATUS_CODE]"
+                echo "💡 Action: Check GitHub API status and token validity"
+                ;;
+            esac
+            
             exit 1
           fi
 
