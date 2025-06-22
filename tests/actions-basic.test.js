@@ -27,6 +27,40 @@ describe('GitHubPRAnalyzer - GitHub Actions Basic Tests', () => {
         })).toBe(false);
     });
 
+    test('should detect Copilot runs by workflow name, title, or commit message', () => {
+        // Test detection by workflow name
+        expect(analyzer.isCopilotTriggeredRun({
+            actor: { login: 'regularuser' },
+            name: 'Copilot Analysis'
+        })).toBe(true);
+
+        // Test detection by display title
+        expect(analyzer.isCopilotTriggeredRun({
+            actor: { login: 'regularuser' },
+            display_title: 'PR from Copilot'
+        })).toBe(true);
+
+        // Test detection by commit message
+        expect(analyzer.isCopilotTriggeredRun({
+            actor: { login: 'regularuser' },
+            head_commit: { message: 'Fix issue with copilot integration' }
+        })).toBe(true);
+
+        // Test case insensitive detection
+        expect(analyzer.isCopilotTriggeredRun({
+            actor: { login: 'regularuser' },
+            name: 'COPILOT Analysis'
+        })).toBe(true);
+
+        // Test no Copilot references
+        expect(analyzer.isCopilotTriggeredRun({
+            actor: { login: 'regularuser' },
+            name: 'Regular CI Build',
+            display_title: 'Normal PR',
+            head_commit: { message: 'Regular commit' }
+        })).toBe(false);
+    });
+
     test('should calculate action minutes correctly', () => {
         const jobs = [
             {

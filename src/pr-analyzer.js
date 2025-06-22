@@ -1212,8 +1212,26 @@ export class GitHubPRAnalyzer {
             'copilot-pull-request-reviewer[bot]'
         ];
         
-        return copilotActors.some(copilotActor => 
+        // Check actors first
+        const isCopilotActor = copilotActors.some(copilotActor => 
             actor === copilotActor || triggeringActor === copilotActor
+        );
+        
+        if (isCopilotActor) {
+            return true;
+        }
+        
+        // Check workflow run title/name for Copilot references
+        const workflowName = workflowRun.name?.toLowerCase() || '';
+        const displayTitle = workflowRun.display_title?.toLowerCase() || '';
+        const commitMessage = workflowRun.head_commit?.message?.toLowerCase() || '';
+        
+        const copilotKeywords = ['copilot'];
+        
+        return copilotKeywords.some(keyword => 
+            workflowName.includes(keyword) || 
+            displayTitle.includes(keyword) || 
+            commitMessage.includes(keyword)
         );
     }
 
@@ -1241,6 +1259,22 @@ export class GitHubPRAnalyzer {
      */
     async analyzeActionsUsage(repoFullName, since) {
         const workflowRuns = await this.getRepositoryWorkflowRuns(repoFullName, since);
+        
+        // Debug logging to understand what runs we're analyzing
+        if (process.env.DEBUG_ACTIONS) {
+            console.log(`\nDebug: Analyzing ${workflowRuns.length} workflow runs for ${repoFullName}`);
+            workflowRuns.forEach((run, index) => {
+                console.log(`  Run ${index + 1}:`);
+                console.log(`    Name: ${run.name}`);
+                console.log(`    Display Title: ${run.display_title}`);
+                console.log(`    Actor: ${run.actor?.login}`);
+                console.log(`    Triggering Actor: ${run.triggering_actor?.login}`);
+                console.log(`    Head Commit Message: ${run.head_commit?.message?.substring(0, 100)}...`);
+                console.log(`    Is Copilot: ${this.isCopilotTriggeredRun(run)}`);
+                console.log('');
+            });
+        }
+        
         const copilotRuns = workflowRuns.filter(run => this.isCopilotTriggeredRun(run));
         
         let totalMinutes = 0;
