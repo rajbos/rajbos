@@ -1124,8 +1124,6 @@ export class GitHubPRAnalyzer {
             } else {
                 throw new Error(`Unsupported output format: ${outputFormat}`);
             }
-        } else {
-            throw new Error(`Unsupported output format: ${outputFormat}`);
         } catch (error) {
             throw new Error(`Failed to save results: ${error.message}`);
         }
