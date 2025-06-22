@@ -101,11 +101,8 @@ export class GitHubPRAnalyzer {
      * @returns {Promise} - Promise that resolves to the API response data
      */
     async _makeApiRequestWithRetry(requestFn, context = 'API request', maxRetries = 3, useCache = true, cacheKey = null) {
-        // Check cache if enabled
-        if (useCache) {
-            if (!cacheKey) {
-                throw new Error('Cache key is required when using cache');
-            }
+        // Check cache if enabled and cache key is provided
+        if (useCache && cacheKey) {
             const cachedData = this.cache.get(cacheKey);
             if (cachedData) {
                 console.log(`Using cached data for [${requestFn.toString()}]`);
@@ -118,7 +115,7 @@ export class GitHubPRAnalyzer {
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
                 const response = await requestFn();
-                // Store in cache if enabled
+                // Store in cache if enabled and cache key is provided
                 if (useCache && cacheKey) {
                     this.cache.set(cacheKey, response.data);
                 }
@@ -1139,34 +1136,32 @@ export class GitHubPRAnalyzer {
         
         while (true) {
             const cacheKey = `workflow_runs_${repoFullName}_${since.toISOString()}_${page}`;
-            let response = this.cache.get(cacheKey);
             
-            if (!response) {
-                try {
-                    const apiResponse = await this._makeApiRequestWithRetry(
-                        () => this.api.get(`/repos/${repoFullName}/actions/runs`, {
-                            params: {
-                                per_page: perPage,
-                                page: page,
-                                created: `>=${since.toISOString()}`
-                            }
-                        }),
-                        `workflow runs for ${repoFullName} (page ${page})`
-                    );
-                    response = apiResponse.data;
-                    this.cache.set(cacheKey, response);
-                } catch (error) {
-                    console.log(`Warning: Could not fetch workflow runs for ${repoFullName}: ${error.message}`);
+            try {
+                const response = await this._makeApiRequestWithRetry(
+                    () => this.api.get(`/repos/${repoFullName}/actions/runs`, {
+                        params: {
+                            per_page: perPage,
+                            page: page,
+                            created: `>=${since.toISOString()}`
+                        }
+                    }),
+                    `workflow runs for ${repoFullName} (page ${page})`,
+                    3, // maxRetries
+                    true, // useCache
+                    cacheKey
+                );
+                
+                if (response.workflow_runs.length === 0) {
                     break;
                 }
-            }
-            
-            if (response.workflow_runs.length === 0) {
+                
+                runs.push(...response.workflow_runs);
+                page++;
+            } catch (error) {
+                console.log(`Warning: Could not fetch workflow runs for ${repoFullName}: ${error.message}`);
                 break;
             }
-            
-            runs.push(...response.workflow_runs);
-            page++;
         }
         
         return runs;
@@ -1177,23 +1172,20 @@ export class GitHubPRAnalyzer {
      */
     async getWorkflowRunJobs(repoFullName, runId) {
         const cacheKey = `workflow_jobs_${repoFullName}_${runId}`;
-        let response = this.cache.get(cacheKey);
         
-        if (!response) {
-            try {
-                const apiResponse = await this._makeApiRequestWithRetry(
-                    () => this.api.get(`/repos/${repoFullName}/actions/runs/${runId}/jobs`),
-                    `jobs for workflow run ${runId} in ${repoFullName}`
-                );
-                response = apiResponse.data;
-                this.cache.set(cacheKey, response);
-            } catch (error) {
-                console.log(`Warning: Could not fetch jobs for workflow run ${runId} in ${repoFullName}: ${error.message}`);
-                return { jobs: [] };
-            }
+        try {
+            const response = await this._makeApiRequestWithRetry(
+                () => this.api.get(`/repos/${repoFullName}/actions/runs/${runId}/jobs`),
+                `jobs for workflow run ${runId} in ${repoFullName}`,
+                3, // maxRetries
+                true, // useCache
+                cacheKey
+            );
+            return response;
+        } catch (error) {
+            console.log(`Warning: Could not fetch jobs for workflow run ${runId} in ${repoFullName}: ${error.message}`);
+            return { jobs: [] };
         }
-        
-        return response;
     }
 
     /**

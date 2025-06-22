@@ -121,7 +121,7 @@ describe('GitHubPRAnalyzer - API Retry Mechanism', () => {
             
             const result = await analyzer._makeApiRequestWithRetry(requestFn, 'test');
             
-            expect(result).toBe(mockResponse);
+            expect(result).toBe(mockResponse.data);
             expect(requestFn).toHaveBeenCalledTimes(1);
         });
 
@@ -133,7 +133,7 @@ describe('GitHubPRAnalyzer - API Retry Mechanism', () => {
             
             const result = await analyzer._makeApiRequestWithRetry(requestFn, 'test');
             
-            expect(result).toBe(mockResponse);
+            expect(result).toBe(mockResponse.data);
             expect(requestFn).toHaveBeenCalledTimes(2);
             expect(analyzer._sleep).toHaveBeenCalledTimes(1);
         });
@@ -173,7 +173,7 @@ describe('GitHubPRAnalyzer - API Retry Mechanism', () => {
             
             const result = await analyzer._makeApiRequestWithRetry(requestFn, 'test');
             
-            expect(result).toBe(mockResponse);
+            expect(result).toBe(mockResponse.data);
             expect(requestFn).toHaveBeenCalledTimes(2);
             expect(analyzer._sleep).toHaveBeenCalledTimes(1);
         });
