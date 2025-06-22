@@ -839,6 +839,7 @@ export async function generateMermaidCharts() {
         
         // Generate percentage chart
         const percentageChart = generatePercentageChart(weeklyData);
+        await writeToStepSummary('');
         await writeToStepSummary('## 🤖 GitHub Copilot Usage Trends');
         await writeToStepSummary('');
         await writeToStepSummary('*This chart displays the adoption rate as percentage of total PRs over time.*');
@@ -855,6 +856,7 @@ export async function generateMermaidCharts() {
         
         // Generate Copilot assistance types chart
         const copilotTypesChart = generateCopilotTypesChart(weeklyData);
+        await writeToStepSummary('');
         await writeToStepSummary('## 🤖📝 GitHub Copilot Assistance Types');
         await writeToStepSummary('');
         await writeToStepSummary('*This chart breaks down Copilot usage by assistance type: coding review vs. coding agent.*');
@@ -871,6 +873,7 @@ export async function generateMermaidCharts() {
         
         // Generate commit statistics chart and table
         const commitStatsChart = generateCommitStatsChart(weeklyData);
+        await writeToStepSummary('');
         await writeToStepSummary('## 📊 Copilot PR Commit Count Statistics');
         await writeToStepSummary('');
         await writeToStepSummary('*This chart displays min/average/max commit counts per Copilot PR for each week.*');
@@ -889,6 +892,7 @@ export async function generateMermaidCharts() {
         
         // Generate line changes statistics chart and table
         const lineChangesChart = generateLineChangesChart(weeklyData);
+        await writeToStepSummary('');
         await writeToStepSummary('## 📈 Lines of Code Changed per PR');
         await writeToStepSummary('');
         await writeToStepSummary('*This chart displays min/average/max lines of code changed per PR for each week.*');
@@ -907,6 +911,7 @@ export async function generateMermaidCharts() {
         
         // Generate weekly line totals chart and table
         const weeklyLineTotalsChart = generateWeeklyLineTotalsChart(weeklyData);
+        await writeToStepSummary('');
         await writeToStepSummary('## 📊 Total Lines of Code Added/Deleted per Week');
         await writeToStepSummary('');
         await writeToStepSummary('*This chart displays total lines of code added and deleted across all PRs for each week.*');
@@ -927,6 +932,7 @@ export async function generateMermaidCharts() {
         
     } catch (error) {
         console.error(`Error generating mermaid charts: ${error.message}`);
+        await writeToStepSummary('');
         await writeToStepSummary('## ❌ Error');
         await writeToStepSummary(`Failed to generate charts: ${error.message}`);
         process.exit(1);
