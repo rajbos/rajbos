@@ -26,8 +26,10 @@ async function printRateLimitInfo(analyzer) {
  * Run PR analysis.
  */
 async function runAnalysis(options) {
+    const startTime = new Date();
+
     // Get environment variables
-    const githubToken = process.env.GITHUB_TOKEN;
+    const githubToken = process.env.GH_PAT || process.env.GITHUB_TOKEN;
     const owner = process.env.GITHUB_REPOSITORY_OWNER || 'rajbos';
     let repo = process.env.GITHUB_REPOSITORY_NAME;
     const outputFormat = process.env.OUTPUT_FORMAT || 'json';
@@ -48,7 +50,7 @@ async function runAnalysis(options) {
             repo = currentRepo;
         }
         
-        console.log(`GitHub Actions detected. Using owner: [${finalOwner}], repo: [${repo || 'all'}]`);
+        console.log(`Using owner: [${finalOwner}], repo: [${repo || 'all'}]`);
     }
     
     if (analyzeAll) {
@@ -144,6 +146,14 @@ async function runAnalysis(options) {
         // Print rate limit info after completion
         await printRateLimitInfo(analyzer);
         
+        // Calculate and log run duration
+        const endTime = new Date();
+        const duration = (endTime - startTime) / 1000; // Convert to seconds
+        const minutes = Math.floor(duration / 60);
+        const seconds = Math.round(duration % 60);
+        console.log(`\n=== RUN DURATION ===`);
+        console.log(`Total run time: [${minutes}m ${seconds}s]`);
+
     } catch (error) {
         console.error(`Error during analysis: ${error.message}`);
         process.exit(1);
