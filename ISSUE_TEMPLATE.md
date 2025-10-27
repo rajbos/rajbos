@@ -1,0 +1,3 @@
+# Issue: Workflow Job Failure due to Invalid PAT
+
+The workflow job at https://github.com/rajbos/rajbos/actions/runs/18826968594/job/53711358064 failed due to an invalid or expired GitHub Personal Access Token (PAT). The error log does not clearly indicate the required PAT scopes. Please update the workflow error handling to explicitly mention that the PAT must have at least the 'repo' and 'user' scopes when a 401 (Unauthorized) or 403 (Forbidden) error occurs. Example addition: echo "Required PAT scopes: repo, user". Reference workflow file: [.github/workflows/pr-analysis.yml](ref:aff19e76203dd165831f175873bc2b07e1618978).

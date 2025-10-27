@@ -111,10 +111,12 @@ jobs:
               401)
                 echo "❌ Error: Unauthorized - Token may be invalid or expired"
                 echo "💡 Action: Check that the GH_PAT secret is set correctly and the token is valid"
+                echo "Required PAT scopes: repo, user"
                 ;;
               403)
                 echo "❌ Error: Forbidden - Token may lack required permissions"
                 echo "💡 Action: Ensure the token has 'repo' and 'user' scopes"
+                echo "Required PAT scopes: repo, user"
                 ;;
               429)
                 echo "❌ Error: Rate limited"
