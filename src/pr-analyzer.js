@@ -433,7 +433,9 @@ export class GitHubPRAnalyzer {
                 page++;
             } catch (error) {
                 if (error.response?.status === 404) {
-                    console.log(`Repository ${repo} not found or not accessible`);
+                    const isPrivate = repo.includes('/') ? isPrivateRepository({ private: true }) : false;
+                    const maskedName = maskPrivateRepoName(repo, isPrivate);
+                    console.log(`Repository [${maskedName}] not found or not accessible`);
                     return [];
                 }
                 throw new Error(`Failed to fetch pull requests for ${repo}: ${error.message}`);
@@ -736,13 +738,21 @@ export class GitHubPRAnalyzer {
             
             // Skip repository if it's in the skip list
             if (this.shouldSkipRepositoryByOrg(repoFullName, skippedOrgs)) {
-                console.log(`Skipping repository [${repoFullName}] due to organization filtering`);
+                const skipIsPrivate = isPrivateRepository(repo);
+                const maskedSkipName = maskPrivateRepoName(repoFullName, skipIsPrivate);
+                if (shouldShowAnalysisMessage(skipIsPrivate)) {
+                    console.log(`Skipping repository [${maskedSkipName}] due to organization filtering`);
+                }
                 continue;
             }
             
             // Skip archived or disabled repositories
             if (shouldSkipRepository(repo)) {
-                console.log(`Skipping repository [${repoFullName}] because it is archived or disabled`);
+                const archiveIsPrivate = isPrivateRepository(repo);
+                const maskedArchiveName = maskPrivateRepoName(repoFullName, archiveIsPrivate);
+                if (shouldShowAnalysisMessage(archiveIsPrivate)) {
+                    console.log(`Skipping repository [${maskedArchiveName}] because it is archived or disabled`);
+                }
                 continue;
             }
             
@@ -1062,6 +1072,52 @@ export class GitHubPRAnalyzer {
     }
 
     /**
+     * Create a text summary of the analysis results.
+     * @param {Object} results - The analysis results
+     * @returns {string} The formatted text summary
+     */    createTextSummary(results) {
+        let textContent = `# Pull Request Analysis\n\n`;
+        textContent += `Found ${results.totalPRs} pull requests`;
+        if (results.totalCopilotPRs > 0) {
+            const copilotPercentage = Math.round((results.totalCopilotPRs / results.totalPRs) * 100);
+            textContent += ` (${results.totalCopilotPRs} with Copilot assistance, ${copilotPercentage}%)\n\n`;
+        } else {
+            textContent += `\n\n`;
+        }
+
+        textContent += `| Week | Copilot | Pull Request | Comments | Lines Changed | Action Minutes |\n`;
+        textContent += `|------|----------|--------------|-----------|---------------|----------------|\n`;
+
+        // Sort weeks chronologically
+        const sortedWeeks = Object.keys(results.weeklyAnalysis).sort();
+
+        for (const week of sortedWeeks) {
+            const weekData = results.weeklyAnalysis[week];
+            if (weekData.pullRequests && weekData.pullRequests.length > 0) {
+                for (const pr of weekData.pullRequests) {
+                    const prLink = `[#${pr.number} ${pr.title}](${pr.url})`;
+                    const copilotType = pr.copilotAssisted ? pr.copilotType : 'none';
+                    
+                    // Calculate line changes
+                    const linesChanged = pr.lineChanges ? 
+                        `+${pr.lineChanges.additions}/-${pr.lineChanges.deletions}` : 
+                        'n/a';
+                    
+                    // Get comments count - using collaborators (excluding the author) as a proxy since we have that data
+                    const commentsCount = pr.collaborators ? pr.collaborators.length - 1 : 0; // Subtract 1 for author
+                    
+                    // Get action minutes if available (this might need to be added to the data structure)
+                    const actionMinutes = pr.actionMinutes || 'n/a';
+                    
+                    textContent += `| ${week} | ${copilotType} | ${prLink} | ${commentsCount} | ${linesChanged} | ${actionMinutes} |\n`;
+                }
+            }
+        }
+
+        return textContent;
+    }
+
+    /**
      * Save results to file in specified format.
      */
     async saveResults(results, outputFormat = 'json') {
@@ -1074,6 +1130,15 @@ export class GitHubPRAnalyzer {
             if (outputFormat.toLowerCase() === 'json') {
                 const filename = `${REPORT_FOLDER}pr_analysis_${timestamp}.json`;
                 await fs.writeFile(filename, JSON.stringify(results, null, 2));
+
+                // If not running in CI, also create a readable text summary
+                if (!isRunningInCI()) {
+                    const textFilename = `${REPORT_FOLDER}pr_analysis_${timestamp}.txt`;
+                    const textContent = this.createTextSummary(results);
+                    await fs.writeFile(textFilename, textContent);
+                    console.log(`Text summary saved to: ${textFilename}`);
+                }
+
                 return filename;
             } else if (outputFormat.toLowerCase() === 'csv') {
                 const filename = `${REPORT_FOLDER}pr_analysis_${timestamp}.csv`;
@@ -1298,5 +1363,65 @@ export class GitHubPRAnalyzer {
             totalRuns,
             runDetails
         };
+     * Create a text summary of the analysis results.
+     * @param {Object} results - The analysis results
+     * @returns {string} The formatted text summary
+     */
+    createTextSummary(results) {
+        let textContent = `# Pull Request Analysis\n\n`;
+        textContent += `Found ${results.totalPRs} pull requests`;
+        if (results.totalCopilotPRs > 0) {
+            const copilotPercentage = Math.round((results.totalCopilotPRs / results.totalPRs) * 100);
+            textContent += ` (${results.totalCopilotPRs} with Copilot assistance, ${copilotPercentage}%)\n\n`;
+        } else {
+            textContent += `\n\n`;
+        }
+
+        // Add repository count information
+        if (isRunningInCI()) {
+            textContent += `Analyzed ${results.totalRepositories} repositories\n\n`;
+        } else {
+            // Only show repository names when not in CI
+            const repoList = new Set();
+            Object.values(results.weeklyAnalysis).forEach(week => {
+                week.repositories.forEach(repo => repoList.add(repo));
+            });
+            textContent += `Analyzed repositories: ${Array.from(repoList).join(', ')}\n\n`;
+        }
+
+        textContent += `| Week | Copilot | Pull Request | Lines Changed | Files |\n`;
+        textContent += `|------|----------|--------------|---------------|--------|\n`;
+
+        // Sort weeks chronologically
+        const sortedWeeks = Object.keys(results.weeklyAnalysis).sort();
+
+        for (const week of sortedWeeks) {
+            const weekData = results.weeklyAnalysis[week];
+            if (weekData.pullRequests && weekData.pullRequests.length > 0) {
+                for (const pr of weekData.pullRequests) {
+                    // Handle PR title with privacy in mind
+                    let prTitle = pr.title;
+                    if (isRunningInCI() && pr.repository.includes('/')) {
+                        // In CI, only show PR number for private repos
+                        prTitle = `PR #${pr.number}`;
+                    }
+
+                    const prLink = `[${prTitle}](${pr.url})`;
+                    const copilotType = pr.copilotAssisted ? pr.copilotType : 'none';
+
+                    // Add lines of code changed info
+                    let linesChanged = '';
+                    let filesChanged = '';
+                    if (pr.lineChanges) {
+                        linesChanged = `+${pr.lineChanges.additions}/-${pr.lineChanges.deletions}`;
+                        filesChanged = pr.lineChanges.filesChanged.toString();
+                    }
+
+                    textContent += `| ${week} | ${copilotType} | ${prLink} | ${linesChanged} | ${filesChanged} |\n`;
+                }
+            }
+        }
+
+        return textContent;
     }
 }
