@@ -1363,6 +1363,9 @@ export class GitHubPRAnalyzer {
             totalRuns,
             runDetails
         };
+    }
+
+    /**
      * Create a text summary of the analysis results.
      * @param {Object} results - The analysis results
      * @returns {string} The formatted text summary
