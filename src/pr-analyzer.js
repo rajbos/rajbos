@@ -1021,7 +1021,7 @@ export class GitHubPRAnalyzer {
                         `+${pr.lineChanges.additions}/-${pr.lineChanges.deletions}` : 
                         'n/a';
                     
-                    // Get comments count - using reviews as a proxy since we have that data
+                    // Get comments count - using collaborators (excluding the author) as a proxy since we have that data
                     const commentsCount = pr.collaborators ? pr.collaborators.length - 1 : 0; // Subtract 1 for author
                     
                     // Get action minutes if available (this might need to be added to the data structure)
