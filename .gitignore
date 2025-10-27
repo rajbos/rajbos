@@ -58,3 +58,4 @@ coverage/
 # Temporary folders
 tmp/
 temp/
+report/*.txt

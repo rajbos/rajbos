@@ -1000,6 +1000,52 @@ export class GitHubPRAnalyzer {
     }
 
     /**
+     * Create a text summary of the analysis results.
+     * @param {Object} results - The analysis results
+     * @returns {string} The formatted text summary
+     */    createTextSummary(results) {
+        let textContent = `# Pull Request Analysis\n\n`;
+        textContent += `Found ${results.totalPRs} pull requests`;
+        if (results.totalCopilotPRs > 0) {
+            const copilotPercentage = Math.round((results.totalCopilotPRs / results.totalPRs) * 100);
+            textContent += ` (${results.totalCopilotPRs} with Copilot assistance, ${copilotPercentage}%)\n\n`;
+        } else {
+            textContent += `\n\n`;
+        }
+
+        textContent += `| Week | Copilot | Pull Request | Comments | Lines Changed | Action Minutes |\n`;
+        textContent += `|------|----------|--------------|-----------|---------------|----------------|\n`;
+
+        // Sort weeks chronologically
+        const sortedWeeks = Object.keys(results.weeklyAnalysis).sort();
+
+        for (const week of sortedWeeks) {
+            const weekData = results.weeklyAnalysis[week];
+            if (weekData.pullRequests && weekData.pullRequests.length > 0) {
+                for (const pr of weekData.pullRequests) {
+                    const prLink = `[#${pr.number} ${pr.title}](${pr.url})`;
+                    const copilotType = pr.copilotAssisted ? pr.copilotType : 'none';
+                    
+                    // Calculate line changes
+                    const linesChanged = pr.lineChanges ? 
+                        `+${pr.lineChanges.additions}/-${pr.lineChanges.deletions}` : 
+                        'n/a';
+                    
+                    // Get comments count - using collaborators (excluding the author) as a proxy since we have that data
+                    const commentsCount = pr.collaborators ? pr.collaborators.length - 1 : 0; // Subtract 1 for author
+                    
+                    // Get action minutes if available (this might need to be added to the data structure)
+                    const actionMinutes = pr.actionMinutes || 'n/a';
+                    
+                    textContent += `| ${week} | ${copilotType} | ${prLink} | ${commentsCount} | ${linesChanged} | ${actionMinutes} |\n`;
+                }
+            }
+        }
+
+        return textContent;
+    }
+
+    /**
      * Save results to file in specified format.
      */
     async saveResults(results, outputFormat = 'json') {
@@ -1012,6 +1058,15 @@ export class GitHubPRAnalyzer {
             if (outputFormat.toLowerCase() === 'json') {
                 const filename = `${REPORT_FOLDER}pr_analysis_${timestamp}.json`;
                 await fs.writeFile(filename, JSON.stringify(results, null, 2));
+
+                // If not running in CI, also create a readable text summary
+                if (!isRunningInCI()) {
+                    const textFilename = `${REPORT_FOLDER}pr_analysis_${timestamp}.txt`;
+                    const textContent = this.createTextSummary(results);
+                    await fs.writeFile(textFilename, textContent);
+                    console.log(`Text summary saved to: ${textFilename}`);
+                }
+
                 return filename;
             } else if (outputFormat.toLowerCase() === 'csv') {
                 const filename = `${REPORT_FOLDER}pr_analysis_${timestamp}.csv`;
