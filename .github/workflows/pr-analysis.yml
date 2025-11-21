@@ -146,14 +146,14 @@ jobs:
           npm run charts
       
       - name: Upload analysis results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: pr-analysis-results
           path: pr_analysis_*.json
           retention-days: 30
       
       - name: Upload CSV results (if generated)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: env.OUTPUT_FORMAT == 'csv' || github.event.inputs.output_format == 'csv'
         with:
           name: pr-analysis-results-csv
