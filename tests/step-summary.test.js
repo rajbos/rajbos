@@ -1,4 +1,4 @@
-import { generateSummaryStats, generateRepositoryDataTable } from '../src/mermaid-generator.js';
+import { generateSummaryStats, generateRepositoryDataTable, generateActionsMinutesChart, generateActionsMinutesDataTable } from '../src/mermaid-generator.js';
 
 describe('Step Summary Integration', () => {
     describe('generateSummaryStats', () => {
@@ -108,6 +108,144 @@ describe('Step Summary Integration', () => {
 
             // Should show 0 for missing Actions data
             expect(table).toContain('| 2023-W01 | 10 | 6 | 60% | 0 | 0 | 3 | repo1, repo2 |');
+        });
+    });
+
+    describe('generateActionsMinutesChart', () => {
+        test('should generate chart with Actions minutes data', () => {
+            const weeklyData = {
+                '2023-W01': {
+                    actionsUsage: {
+                        totalRuns: 5,
+                        totalMinutes: 45
+                    }
+                },
+                '2023-W02': {
+                    actionsUsage: {
+                        totalRuns: 8,
+                        totalMinutes: 120
+                    }
+                }
+            };
+
+            const chart = generateActionsMinutesChart(weeklyData);
+
+            // Verify mermaid chart syntax
+            expect(chart).toContain('```mermaid');
+            expect(chart).toContain('xychart-beta');
+            expect(chart).toContain('title "Copilot Actions Minutes Used by Week"');
+            expect(chart).toContain('bar "Actions Minutes"');
+            expect(chart).toContain('line "Actions Runs"');
+            expect(chart).toContain('```');
+            
+            // Verify legend
+            expect(chart).toContain('**Actions Minutes**');
+            expect(chart).toContain('**Actions Runs**');
+        });
+
+        test('should handle empty weekly data', () => {
+            const chart = generateActionsMinutesChart({});
+            expect(chart).toBe('No data available for Actions minutes chart');
+        });
+
+        test('should handle null weekly data', () => {
+            const chart = generateActionsMinutesChart(null);
+            expect(chart).toBe('No data available for Actions minutes chart');
+        });
+
+        test('should handle weeks with no Actions data', () => {
+            const weeklyData = {
+                '2023-W01': {
+                    totalPRs: 10
+                    // No actionsUsage property
+                }
+            };
+
+            const chart = generateActionsMinutesChart(weeklyData);
+            expect(chart).toBe('No Copilot Actions data available for this period');
+        });
+
+        test('should handle weeks with zero Actions minutes', () => {
+            const weeklyData = {
+                '2023-W01': {
+                    actionsUsage: {
+                        totalRuns: 0,
+                        totalMinutes: 0
+                    }
+                }
+            };
+
+            const chart = generateActionsMinutesChart(weeklyData);
+            expect(chart).toBe('No Copilot Actions data available for this period');
+        });
+    });
+
+    describe('generateActionsMinutesDataTable', () => {
+        test('should generate table with Actions minutes data', () => {
+            const weeklyData = {
+                '2023-W01': {
+                    actionsUsage: {
+                        totalRuns: 5,
+                        totalMinutes: 45
+                    }
+                },
+                '2023-W02': {
+                    actionsUsage: {
+                        totalRuns: 8,
+                        totalMinutes: 120
+                    }
+                }
+            };
+
+            const table = generateActionsMinutesDataTable(weeklyData);
+
+            // Verify header
+            expect(table).toContain('| Week | Actions Runs | Actions Minutes | Avg Minutes/Run |');
+            
+            // Verify data rows
+            expect(table).toContain('| 2023-W01 | 5 | 45 | 9 |');
+            expect(table).toContain('| 2023-W02 | 8 | 120 | 15 |');
+            
+            // Verify totals row
+            expect(table).toContain('| **Total** | **13** | **165** |');
+        });
+
+        test('should handle empty weekly data', () => {
+            const table = generateActionsMinutesDataTable({});
+            expect(table).toBe('No data available for Actions minutes table');
+        });
+
+        test('should handle null weekly data', () => {
+            const table = generateActionsMinutesDataTable(null);
+            expect(table).toBe('No data available for Actions minutes table');
+        });
+
+        test('should handle weeks with no Actions data', () => {
+            const weeklyData = {
+                '2023-W01': {
+                    totalPRs: 10
+                    // No actionsUsage property
+                }
+            };
+
+            const table = generateActionsMinutesDataTable(weeklyData);
+            expect(table).toBe('No Copilot Actions data available for table');
+        });
+
+        test('should calculate average correctly', () => {
+            const weeklyData = {
+                '2023-W01': {
+                    actionsUsage: {
+                        totalRuns: 3,
+                        totalMinutes: 100
+                    }
+                }
+            };
+
+            const table = generateActionsMinutesDataTable(weeklyData);
+            
+            // 100 / 3 = 33.333... should round to 33.3
+            expect(table).toContain('| 2023-W01 | 3 | 100 | 33.3 |');
         });
     });
 });

@@ -720,6 +720,119 @@ export function generateWeeklyLineTotalsDataTable(weeklyData) {
 }
 
 /**
+ * Generate mermaid chart showing Copilot Actions minutes over time.
+ */
+export function generateActionsMinutesChart(weeklyData) {
+    if (!weeklyData || Object.keys(weeklyData).length === 0) {
+        return 'No data available for Actions minutes chart';
+    }
+    
+    // Sort weeks chronologically
+    const sortedWeeks = Object.keys(weeklyData).sort((a, b) => {
+        const [yearA, weekA] = parseWeekKey(a);
+        const [yearB, weekB] = parseWeekKey(b);
+        return yearA !== yearB ? yearA - yearB : weekA - weekB;
+    });
+    
+    // Check if there's any Actions data
+    const hasActionsData = sortedWeeks.some(week => 
+        weeklyData[week].actionsUsage && weeklyData[week].actionsUsage.totalMinutes > 0
+    );
+    
+    if (!hasActionsData) {
+        return 'No Copilot Actions data available for this period';
+    }
+    
+    // Generate chart data
+    const chartLines = [];
+    chartLines.push('```mermaid');
+    chartLines.push('xychart-beta');
+    chartLines.push('    title "Copilot Actions Minutes Used by Week"');
+    chartLines.push('    x-axis [' + sortedWeeks.map(week => `"${formatWeekForDisplay(week)}"`).join(', ') + ']');
+    
+    // Calculate max value for y-axis
+    const maxMinutes = Math.max(...sortedWeeks.map(week => 
+        weeklyData[week].actionsUsage ? weeklyData[week].actionsUsage.totalMinutes : 0
+    ));
+    chartLines.push('    y-axis "Minutes" 0 --> ' + (maxMinutes + Math.ceil(maxMinutes * 0.1)));
+    
+    // Actions minutes bar
+    const actionsMinutes = sortedWeeks.map(week => 
+        weeklyData[week].actionsUsage ? weeklyData[week].actionsUsage.totalMinutes : 0
+    );
+    chartLines.push('    bar "Actions Minutes" [' + actionsMinutes.join(', ') + ']');
+    
+    // Actions runs line
+    const actionsRuns = sortedWeeks.map(week => 
+        weeklyData[week].actionsUsage ? weeklyData[week].actionsUsage.totalRuns : 0
+    );
+    chartLines.push('    line "Actions Runs" [' + actionsRuns.join(', ') + ']');
+    
+    chartLines.push('```');
+    
+    // Add legend explanation
+    const legendExplanation = [
+        '',
+        '**Legend:**',
+        '- 📊 **Actions Minutes**: Total minutes used by Copilot-triggered workflow runs per week',
+        '- 📈 **Actions Runs**: Number of Copilot-triggered workflow runs per week',
+        '- **Higher values indicate more CI/CD activity from Copilot-assisted development**'
+    ];
+    
+    return chartLines.concat(legendExplanation).join('\n');
+}
+
+/**
+ * Generate markdown table showing Copilot Actions minutes data.
+ */
+export function generateActionsMinutesDataTable(weeklyData) {
+    if (!weeklyData || Object.keys(weeklyData).length === 0) {
+        return 'No data available for Actions minutes table';
+    }
+    
+    // Sort weeks chronologically
+    const sortedWeeks = Object.keys(weeklyData).sort((a, b) => {
+        const [yearA, weekA] = parseWeekKey(a);
+        const [yearB, weekB] = parseWeekKey(b);
+        return yearA !== yearB ? yearA - yearB : weekA - weekB;
+    });
+    
+    // Check if there's any Actions data
+    const hasActionsData = sortedWeeks.some(week => 
+        weeklyData[week].actionsUsage && weeklyData[week].actionsUsage.totalMinutes > 0
+    );
+    
+    if (!hasActionsData) {
+        return 'No Copilot Actions data available for table';
+    }
+    
+    const lines = [];
+    lines.push('| Week | Actions Runs | Actions Minutes | Avg Minutes/Run |');
+    lines.push('|------|--------------|-----------------|-----------------|');
+    
+    let totalRuns = 0;
+    let totalMinutes = 0;
+    
+    for (const week of sortedWeeks) {
+        const actionsUsage = weeklyData[week].actionsUsage;
+        const runs = actionsUsage ? actionsUsage.totalRuns : 0;
+        const minutes = actionsUsage ? actionsUsage.totalMinutes : 0;
+        const avgMinutes = runs > 0 ? Math.round(minutes / runs * 10) / 10 : 0;
+        
+        totalRuns += runs;
+        totalMinutes += minutes;
+        
+        lines.push(`| ${week} | ${runs} | ${minutes} | ${avgMinutes} |`);
+    }
+    
+    // Add totals row
+    const totalAvg = totalRuns > 0 ? Math.round(totalMinutes / totalRuns * 10) / 10 : 0;
+    lines.push(`| **Total** | **${totalRuns}** | **${totalMinutes}** | **${totalAvg}** |`);
+    
+    return lines.join('\n');
+}
+
+/**
  * Generate summary statistics in markdown format.
  */
 export function generateSummaryStats(results) {
@@ -935,6 +1048,25 @@ export async function generateMermaidCharts() {
             await writeToStepSummary('<summary>📊 Weekly Line Totals Data</summary>');
             await writeToStepSummary('');
             await writeToStepSummary(weeklyLineTotalsTable);
+            await writeToStepSummary('');
+            await writeToStepSummary('</details>');
+        }
+        
+        // Generate Actions minutes chart and table
+        const actionsMinutesChart = generateActionsMinutesChart(weeklyData);
+        await writeToStepSummary('');
+        await writeToStepSummary('## ⏱️ Copilot Actions Minutes Usage');
+        await writeToStepSummary('');
+        await writeToStepSummary('*This chart displays Copilot-triggered GitHub Actions workflow minutes by week.*');
+        await writeToStepSummary(actionsMinutesChart);
+        
+        // Generate Actions minutes data table
+        const actionsMinutesTable = generateActionsMinutesDataTable(weeklyData);
+        if (actionsMinutesTable !== 'No Copilot Actions data available for table') {
+            await writeToStepSummary('<details>');
+            await writeToStepSummary('<summary>📊 Actions Minutes Data</summary>');
+            await writeToStepSummary('');
+            await writeToStepSummary(actionsMinutesTable);
             await writeToStepSummary('');
             await writeToStepSummary('</details>');
         }
