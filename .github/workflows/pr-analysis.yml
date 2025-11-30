@@ -40,16 +40,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
       
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '18'
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: |
-          npm ci
-      
       - name: Cache HTTP requests
         uses: actions/cache@v4
         with:
@@ -131,19 +121,13 @@ jobs:
             exit 1
           fi
 
-      - name: Run PR analysis
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-          OUTPUT_FORMAT: ${{ github.event.inputs.output_format || 'json' }}
-          ANALYZE_ALL_REPOS: 'true'
-          CLEAN_CACHE: ${{ github.event.inputs.clean_cache || 'false' }}
-        run: |
-          npm run analyze
-      
-      - name: Generate Mermaid Charts
-        if: env.OUTPUT_FORMAT == 'json' || github.event.inputs.output_format != 'csv'
-        run: |
-          npm run charts
+      - name: Run PR analysis with charts
+        uses: ./.github/actions
+        with:
+          github_token: ${{ secrets.GH_PAT }}
+          output_format: ${{ github.event.inputs.output_format || 'json' }}
+          analyze_all_repos: 'true'
+          clean_cache: ${{ github.event.inputs.clean_cache || 'false' }}
       
       - name: Upload analysis results
         uses: actions/upload-artifact@v5
