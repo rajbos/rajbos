@@ -28,6 +28,17 @@ export function maskPrivateInfoForDisplay(value) {
 }
 
 /**
+ * Format a number with metric notation (space as thousand separator).
+ * Example: 101891 -> "101 891"
+ */
+export function formatNumberMetric(num) {
+    if (num === null || num === undefined) {
+        return '0';
+    }
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+/**
  * Find the latest analysis JSON file.
  */
 export async function findLatestAnalysisFile() {
@@ -822,12 +833,12 @@ export function generateActionsMinutesDataTable(weeklyData) {
         totalRuns += runs;
         totalMinutes += minutes;
         
-        lines.push(`| ${week} | ${runs} | ${minutes} | ${avgMinutes} |`);
+        lines.push(`| ${week} | ${formatNumberMetric(runs)} | ${formatNumberMetric(minutes)} | ${formatNumberMetric(avgMinutes)} |`);
     }
     
     // Add totals row
     const totalAvg = totalRuns > 0 ? Math.round(totalMinutes / totalRuns * 10) / 10 : 0;
-    lines.push(`| **Total** | **${totalRuns}** | **${totalMinutes}** | **${totalAvg}** |`);
+    lines.push(`| **Total** | **${formatNumberMetric(totalRuns)}** | **${formatNumberMetric(totalMinutes)}** | **${formatNumberMetric(totalAvg)}** |`);
     
     return lines.join('\n');
 }
@@ -892,10 +903,10 @@ export function generateSummaryStats(results) {
                 ? Math.round(overallTotals.copilotPRs.totalFilesChanged / overallTotals.allPRs.totalFilesChanged * 100 * 100) / 100
                 : 0;
             
-            lines.push(`| **Total Lines Added** | ${overallTotals.allPRs.totalAdditions.toLocaleString()} | ${overallTotals.copilotPRs.totalAdditions.toLocaleString()} | ${additionsPercentage}% |`);
-            lines.push(`| **Total Lines Deleted** | ${overallTotals.allPRs.totalDeletions.toLocaleString()} | ${overallTotals.copilotPRs.totalDeletions.toLocaleString()} | ${deletionsPercentage}% |`);
-            lines.push(`| **Total Lines Changed** | ${overallTotals.allPRs.totalChanges.toLocaleString()} | ${overallTotals.copilotPRs.totalChanges.toLocaleString()} | ${changesPercentage}% |`);
-            lines.push(`| **Total Files Changed** | ${overallTotals.allPRs.totalFilesChanged.toLocaleString()} | ${overallTotals.copilotPRs.totalFilesChanged.toLocaleString()} | ${filesPercentage}% |`);
+            lines.push(`| **Total Lines Added** | ${formatNumberMetric(overallTotals.allPRs.totalAdditions)} | ${formatNumberMetric(overallTotals.copilotPRs.totalAdditions)} | ${additionsPercentage}% |`);
+            lines.push(`| **Total Lines Deleted** | ${formatNumberMetric(overallTotals.allPRs.totalDeletions)} | ${formatNumberMetric(overallTotals.copilotPRs.totalDeletions)} | ${deletionsPercentage}% |`);
+            lines.push(`| **Total Lines Changed** | ${formatNumberMetric(overallTotals.allPRs.totalChanges)} | ${formatNumberMetric(overallTotals.copilotPRs.totalChanges)} | ${changesPercentage}% |`);
+            lines.push(`| **Total Files Changed** | ${formatNumberMetric(overallTotals.allPRs.totalFilesChanged)} | ${formatNumberMetric(overallTotals.copilotPRs.totalFilesChanged)} | ${filesPercentage}% |`);
         }
     }
     

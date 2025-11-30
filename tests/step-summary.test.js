@@ -1,6 +1,30 @@
-import { generateSummaryStats, generateRepositoryDataTable, generateActionsMinutesChart, generateActionsMinutesDataTable } from '../src/mermaid-generator.js';
+import { generateSummaryStats, generateRepositoryDataTable, generateActionsMinutesChart, generateActionsMinutesDataTable, formatNumberMetric } from '../src/mermaid-generator.js';
 
 describe('Step Summary Integration', () => {
+    describe('formatNumberMetric', () => {
+        test('should format numbers with space as thousand separator', () => {
+            expect(formatNumberMetric(1000)).toBe('1 000');
+            expect(formatNumberMetric(101891)).toBe('101 891');
+            expect(formatNumberMetric(1000000)).toBe('1 000 000');
+        });
+
+        test('should handle small numbers without separators', () => {
+            expect(formatNumberMetric(0)).toBe('0');
+            expect(formatNumberMetric(100)).toBe('100');
+            expect(formatNumberMetric(999)).toBe('999');
+        });
+
+        test('should handle null and undefined', () => {
+            expect(formatNumberMetric(null)).toBe('0');
+            expect(formatNumberMetric(undefined)).toBe('0');
+        });
+
+        test('should handle decimal numbers', () => {
+            expect(formatNumberMetric(1234.5)).toBe('1 234.5');
+            expect(formatNumberMetric(125.8)).toBe('125.8');
+        });
+    });
+
     describe('generateSummaryStats', () => {
         test('should include GitHub Actions data in summary', () => {
             const results = {
@@ -246,6 +270,23 @@ describe('Step Summary Integration', () => {
             
             // 100 / 3 = 33.333... should round to 33.3
             expect(table).toContain('| 2023-W01 | 3 | 100 | 33.3 |');
+        });
+
+        test('should format large numbers with metric notation (space separators)', () => {
+            const weeklyData = {
+                '2023-W01': {
+                    actionsUsage: {
+                        totalRuns: 810,
+                        totalMinutes: 101891
+                    }
+                }
+            };
+
+            const table = generateActionsMinutesDataTable(weeklyData);
+            
+            // Verify metric notation with space as thousand separator
+            expect(table).toContain('| 2023-W01 | 810 | 101 891 |');
+            expect(table).toContain('| **Total** | **810** | **101 891** |');
         });
     });
 });
