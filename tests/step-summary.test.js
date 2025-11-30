@@ -2,10 +2,10 @@ import { generateSummaryStats, generateRepositoryDataTable, generateActionsMinut
 
 describe('Step Summary Integration', () => {
     describe('formatNumberMetric', () => {
-        test('should format numbers with space as thousand separator', () => {
-            expect(formatNumberMetric(1000)).toBe('1 000');
-            expect(formatNumberMetric(101891)).toBe('101 891');
-            expect(formatNumberMetric(1000000)).toBe('1 000 000');
+        test('should format numbers with dot as thousand separator', () => {
+            expect(formatNumberMetric(1000)).toBe('1.000');
+            expect(formatNumberMetric(101891)).toBe('101.891');
+            expect(formatNumberMetric(1000000)).toBe('1.000.000');
         });
 
         test('should handle small numbers without separators', () => {
@@ -19,9 +19,9 @@ describe('Step Summary Integration', () => {
             expect(formatNumberMetric(undefined)).toBe('0');
         });
 
-        test('should handle decimal numbers', () => {
-            expect(formatNumberMetric(1234.5)).toBe('1 234.5');
-            expect(formatNumberMetric(125.8)).toBe('125.8');
+        test('should handle decimal numbers with comma as decimal separator', () => {
+            expect(formatNumberMetric(1234.5)).toBe('1.234,5');
+            expect(formatNumberMetric(125.8)).toBe('125,8');
         });
     });
 
@@ -268,11 +268,11 @@ describe('Step Summary Integration', () => {
 
             const table = generateActionsMinutesDataTable(weeklyData);
             
-            // 100 / 3 = 33.333... should round to 33.3
-            expect(table).toContain('| 2023-W01 | 3 | 100 | 33.3 |');
+            // 100 / 3 = 33.333... should round to 33.3, displayed with comma as decimal separator
+            expect(table).toContain('| 2023-W01 | 3 | 100 | 33,3 |');
         });
 
-        test('should format large numbers with metric notation (space separators)', () => {
+        test('should format large numbers with metric notation (dot separators)', () => {
             const weeklyData = {
                 '2023-W01': {
                     actionsUsage: {
@@ -284,9 +284,9 @@ describe('Step Summary Integration', () => {
 
             const table = generateActionsMinutesDataTable(weeklyData);
             
-            // Verify metric notation with space as thousand separator
-            expect(table).toContain('| 2023-W01 | 810 | 101 891 |');
-            expect(table).toContain('| **Total** | **810** | **101 891** |');
+            // Verify metric notation with dot as thousand separator
+            expect(table).toContain('| 2023-W01 | 810 | 101.891 |');
+            expect(table).toContain('| **Total** | **810** | **101.891** |');
         });
     });
 });

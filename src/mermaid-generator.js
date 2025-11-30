@@ -28,14 +28,19 @@ export function maskPrivateInfoForDisplay(value) {
 }
 
 /**
- * Format a number with metric notation (space as thousand separator).
- * Example: 101891 -> "101 891"
+ * Format a number with European metric notation (dot as thousand separator, comma for decimals).
+ * Example: 101891 -> "101.891", 125.8 -> "125,8"
  */
 export function formatNumberMetric(num) {
     if (num === null || num === undefined) {
         return '0';
     }
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    // Convert to string and handle decimals
+    const parts = num.toString().split('.');
+    // Add dots as thousand separators for the integer part
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    // Join with comma if there's a decimal part
+    return parts.length > 1 ? parts.join(',') : parts[0];
 }
 
 /**
@@ -853,29 +858,29 @@ export function generateSummaryStats(results) {
     lines.push(`- **Analysis Period**: ${new Date(results.periodStart).toLocaleDateString()} to ${new Date(results.periodEnd).toLocaleDateString()}`);
     lines.push(`- **Analyzed User**: ${maskPrivateInfoForDisplay(results.analyzedUser)}`);
     lines.push(`- **Analyzed Repository**: ${maskPrivateInfoForDisplay(results.analyzedRepository)}`);
-    lines.push(`- **Total Repositories**: ${results.totalRepositories}`);
-    lines.push(`- **Total PRs**: ${results.totalPRs}`);
-    lines.push(`- **Copilot-Assisted PRs**: ${results.totalCopilotPRs}`);
+    lines.push(`- **Total Repositories**: ${formatNumberMetric(results.totalRepositories)}`);
+    lines.push(`- **Total PRs**: ${formatNumberMetric(results.totalPRs)}`);
+    lines.push(`- **Copilot-Assisted PRs**: ${formatNumberMetric(results.totalCopilotPRs)}`);
     
     if (results.totalPRs > 0) {
         const overallCopilotPercentage = Math.round(results.totalCopilotPRs / results.totalPRs * 100 * 100) / 100;
-        lines.push(`- **Overall Copilot Usage**: ${overallCopilotPercentage}%`);
+        lines.push(`- **Overall Copilot Usage**: ${formatNumberMetric(overallCopilotPercentage)}%`);
     }
     
     if (results.totalCopilotReviewPRs !== undefined) {
-        lines.push(`- **Copilot Review PRs**: ${results.totalCopilotReviewPRs}`);
+        lines.push(`- **Copilot Review PRs**: ${formatNumberMetric(results.totalCopilotReviewPRs)}`);
     }
     
     if (results.totalCopilotAgentPRs !== undefined) {
-        lines.push(`- **Copilot Agent PRs**: ${results.totalCopilotAgentPRs}`);
+        lines.push(`- **Copilot Agent PRs**: ${formatNumberMetric(results.totalCopilotAgentPRs)}`);
     }
     
     if (results.totalActionsRuns !== undefined) {
-        lines.push(`- **Copilot-triggered Actions runs**: ${results.totalActionsRuns}`);
+        lines.push(`- **Copilot-triggered Actions runs**: ${formatNumberMetric(results.totalActionsRuns)}`);
     }
     
     if (results.totalActionsMinutes !== undefined) {
-        lines.push(`- **Copilot Actions minutes used**: ${results.totalActionsMinutes}`);
+        lines.push(`- **Copilot Actions minutes used**: ${formatNumberMetric(results.totalActionsMinutes)}`);
     }
     
     // Calculate total lines of code added/deleted across all weeks
