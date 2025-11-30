@@ -28,6 +28,22 @@ export function maskPrivateInfoForDisplay(value) {
 }
 
 /**
+ * Format a number with European metric notation (dot as thousand separator, comma for decimals).
+ * Example: 101891 -> "101.891", 125.8 -> "125,8"
+ */
+export function formatNumberMetric(num) {
+    if (num === null || num === undefined) {
+        return '0';
+    }
+    // Convert to string and handle decimals
+    const parts = num.toString().split('.');
+    // Add dots as thousand separators for the integer part
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    // Join with comma if there's a decimal part
+    return parts.length > 1 ? parts.join(',') : parts[0];
+}
+
+/**
  * Find the latest analysis JSON file.
  */
 export async function findLatestAnalysisFile() {
@@ -237,7 +253,7 @@ export function generateRepositoryDataTable(weeklyData) {
         const actionsRuns = data.actionsUsage ? data.actionsUsage.totalRuns : 0;
         const actionsMinutes = data.actionsUsage ? data.actionsUsage.totalMinutes : 0;
         
-        lines.push(`| ${week} | ${data.totalPRs} | ${data.copilotAssistedPRs} | ${data.copilotPercentage}% | ${actionsRuns} | ${actionsMinutes} | ${data.uniqueCollaborators} | ${repoDisplay} |`);
+        lines.push(`| ${week} | ${formatNumberMetric(data.totalPRs)} | ${formatNumberMetric(data.copilotAssistedPRs)} | ${formatNumberMetric(data.copilotPercentage)}% | ${formatNumberMetric(actionsRuns)} | ${formatNumberMetric(actionsMinutes)} | ${formatNumberMetric(data.uniqueCollaborators)} | ${repoDisplay} |`);
     }
     
     return lines.join('\n');
@@ -555,7 +571,7 @@ export function generateLineChangesDataTable(weeklyData) {
     
     for (const week of sortedWeeks) {
         const stats = lineStats[week];
-        lines.push(`| ${week} | ${stats.prCount} | ${stats.changes.min} | ${stats.changes.avg} | ${stats.changes.max} | ${stats.additions.min} | ${stats.additions.avg} | ${stats.additions.max} | ${stats.deletions.min} | ${stats.deletions.avg} | ${stats.deletions.max} |`);
+        lines.push(`| ${week} | ${formatNumberMetric(stats.prCount)} | ${formatNumberMetric(stats.changes.min)} | ${formatNumberMetric(stats.changes.avg)} | ${formatNumberMetric(stats.changes.max)} | ${formatNumberMetric(stats.additions.min)} | ${formatNumberMetric(stats.additions.avg)} | ${formatNumberMetric(stats.additions.max)} | ${formatNumberMetric(stats.deletions.min)} | ${formatNumberMetric(stats.deletions.avg)} | ${formatNumberMetric(stats.deletions.max)} |`);
     }
     
     return lines.join('\n');
@@ -713,8 +729,121 @@ export function generateWeeklyLineTotalsDataTable(weeklyData) {
     
     for (const week of sortedWeeks) {
         const totals = lineTotals[week];
-        lines.push(`| ${week} | ${totals.prCount} | ${totals.totalAdditions} | ${totals.totalDeletions} | ${totals.totalChanges} | ${totals.totalFilesChanged} |`);
+        lines.push(`| ${week} | ${formatNumberMetric(totals.prCount)} | ${formatNumberMetric(totals.totalAdditions)} | ${formatNumberMetric(totals.totalDeletions)} | ${formatNumberMetric(totals.totalChanges)} | ${formatNumberMetric(totals.totalFilesChanged)} |`);
     }
+    
+    return lines.join('\n');
+}
+
+/**
+ * Generate mermaid chart showing Copilot Actions minutes over time.
+ */
+export function generateActionsMinutesChart(weeklyData) {
+    if (!weeklyData || Object.keys(weeklyData).length === 0) {
+        return 'No data available for Actions minutes chart';
+    }
+    
+    // Sort weeks chronologically
+    const sortedWeeks = Object.keys(weeklyData).sort((a, b) => {
+        const [yearA, weekA] = parseWeekKey(a);
+        const [yearB, weekB] = parseWeekKey(b);
+        return yearA !== yearB ? yearA - yearB : weekA - weekB;
+    });
+    
+    // Check if there's any Actions data
+    const hasActionsData = sortedWeeks.some(week => 
+        weeklyData[week].actionsUsage && weeklyData[week].actionsUsage.totalMinutes > 0
+    );
+    
+    if (!hasActionsData) {
+        return 'No Copilot Actions data available for this period';
+    }
+    
+    // Generate chart data
+    const chartLines = [];
+    chartLines.push('```mermaid');
+    chartLines.push('xychart-beta');
+    chartLines.push('    title "Copilot Actions Minutes Used by Week"');
+    chartLines.push('    x-axis [' + sortedWeeks.map(week => `"${formatWeekForDisplay(week)}"`).join(', ') + ']');
+    
+    // Calculate max value for y-axis
+    const maxMinutes = Math.max(...sortedWeeks.map(week => 
+        weeklyData[week].actionsUsage ? weeklyData[week].actionsUsage.totalMinutes : 0
+    ));
+    chartLines.push('    y-axis "Minutes" 0 --> ' + (maxMinutes + Math.ceil(maxMinutes * 0.1)));
+    
+    // Actions minutes bar
+    const actionsMinutes = sortedWeeks.map(week => 
+        weeklyData[week].actionsUsage ? weeklyData[week].actionsUsage.totalMinutes : 0
+    );
+    chartLines.push('    bar "Actions Minutes" [' + actionsMinutes.join(', ') + ']');
+    
+    // Actions runs line
+    const actionsRuns = sortedWeeks.map(week => 
+        weeklyData[week].actionsUsage ? weeklyData[week].actionsUsage.totalRuns : 0
+    );
+    chartLines.push('    line "Actions Runs" [' + actionsRuns.join(', ') + ']');
+    
+    chartLines.push('```');
+    
+    // Add legend explanation
+    const legendExplanation = [
+        '',
+        '**Legend:**',
+        '- 📊 **Actions Minutes**: Total minutes used by Copilot-triggered workflow runs per week',
+        '- 📈 **Actions Runs**: Number of Copilot-triggered workflow runs per week',
+        '- **Higher values indicate more CI/CD activity from Copilot-assisted development**'
+    ];
+    
+    return chartLines.concat(legendExplanation).join('\n');
+}
+
+/**
+ * Generate markdown table showing Copilot Actions minutes data.
+ */
+export function generateActionsMinutesDataTable(weeklyData) {
+    if (!weeklyData || Object.keys(weeklyData).length === 0) {
+        return 'No data available for Actions minutes table';
+    }
+    
+    // Sort weeks chronologically
+    const sortedWeeks = Object.keys(weeklyData).sort((a, b) => {
+        const [yearA, weekA] = parseWeekKey(a);
+        const [yearB, weekB] = parseWeekKey(b);
+        return yearA !== yearB ? yearA - yearB : weekA - weekB;
+    });
+    
+    // Check if there's any Actions data
+    const hasActionsData = sortedWeeks.some(week => 
+        weeklyData[week].actionsUsage && weeklyData[week].actionsUsage.totalMinutes > 0
+    );
+    
+    if (!hasActionsData) {
+        return 'No Copilot Actions data available for table';
+    }
+    
+    const lines = [];
+    lines.push('| Week | Actions Runs | Actions Minutes | Avg Minutes/Run |');
+    lines.push('|------|--------------|-----------------|-----------------|');
+    
+    let totalRuns = 0;
+    let totalMinutes = 0;
+    
+    for (const week of sortedWeeks) {
+        const actionsUsage = weeklyData[week].actionsUsage;
+        const runs = actionsUsage ? actionsUsage.totalRuns : 0;
+        const minutes = actionsUsage ? actionsUsage.totalMinutes : 0;
+        const avgMinutes = runs > 0 ? Math.round(minutes / runs * 10) / 10 : 0;
+        
+        totalRuns += runs;
+        totalMinutes += minutes;
+        
+        lines.push(`| ${week} | ${formatNumberMetric(runs)} | ${formatNumberMetric(minutes)} | ${formatNumberMetric(avgMinutes)} |`);
+    }
+    
+    // Add totals row
+    const totalAvg = totalRuns > 0 ? Math.round(totalMinutes / totalRuns * 10) / 10 : 0;
+    lines.push(`| **Total** | **${formatNumberMetric(totalRuns)}** | **${formatNumberMetric(totalMinutes)}** | **${formatNumberMetric(totalAvg)}** |`);
     
     return lines.join('\n');
 }
@@ -729,29 +858,29 @@ export function generateSummaryStats(results) {
     lines.push(`- **Analysis Period**: ${new Date(results.periodStart).toLocaleDateString()} to ${new Date(results.periodEnd).toLocaleDateString()}`);
     lines.push(`- **Analyzed User**: ${maskPrivateInfoForDisplay(results.analyzedUser)}`);
     lines.push(`- **Analyzed Repository**: ${maskPrivateInfoForDisplay(results.analyzedRepository)}`);
-    lines.push(`- **Total Repositories**: ${results.totalRepositories}`);
-    lines.push(`- **Total PRs**: ${results.totalPRs}`);
-    lines.push(`- **Copilot-Assisted PRs**: ${results.totalCopilotPRs}`);
+    lines.push(`- **Total Repositories**: ${formatNumberMetric(results.totalRepositories)}`);
+    lines.push(`- **Total PRs**: ${formatNumberMetric(results.totalPRs)}`);
+    lines.push(`- **Copilot-Assisted PRs**: ${formatNumberMetric(results.totalCopilotPRs)}`);
     
     if (results.totalPRs > 0) {
         const overallCopilotPercentage = Math.round(results.totalCopilotPRs / results.totalPRs * 100 * 100) / 100;
-        lines.push(`- **Overall Copilot Usage**: ${overallCopilotPercentage}%`);
+        lines.push(`- **Overall Copilot Usage**: ${formatNumberMetric(overallCopilotPercentage)}%`);
     }
     
     if (results.totalCopilotReviewPRs !== undefined) {
-        lines.push(`- **Copilot Review PRs**: ${results.totalCopilotReviewPRs}`);
+        lines.push(`- **Copilot Review PRs**: ${formatNumberMetric(results.totalCopilotReviewPRs)}`);
     }
     
     if (results.totalCopilotAgentPRs !== undefined) {
-        lines.push(`- **Copilot Agent PRs**: ${results.totalCopilotAgentPRs}`);
+        lines.push(`- **Copilot Agent PRs**: ${formatNumberMetric(results.totalCopilotAgentPRs)}`);
     }
     
     if (results.totalActionsRuns !== undefined) {
-        lines.push(`- **Copilot-triggered Actions runs**: ${results.totalActionsRuns}`);
+        lines.push(`- **Copilot-triggered Actions runs**: ${formatNumberMetric(results.totalActionsRuns)}`);
     }
     
     if (results.totalActionsMinutes !== undefined) {
-        lines.push(`- **Copilot Actions minutes used**: ${results.totalActionsMinutes}`);
+        lines.push(`- **Copilot Actions minutes used**: ${formatNumberMetric(results.totalActionsMinutes)}`);
     }
     
     // Calculate total lines of code added/deleted across all weeks
@@ -779,10 +908,10 @@ export function generateSummaryStats(results) {
                 ? Math.round(overallTotals.copilotPRs.totalFilesChanged / overallTotals.allPRs.totalFilesChanged * 100 * 100) / 100
                 : 0;
             
-            lines.push(`| **Total Lines Added** | ${overallTotals.allPRs.totalAdditions.toLocaleString()} | ${overallTotals.copilotPRs.totalAdditions.toLocaleString()} | ${additionsPercentage}% |`);
-            lines.push(`| **Total Lines Deleted** | ${overallTotals.allPRs.totalDeletions.toLocaleString()} | ${overallTotals.copilotPRs.totalDeletions.toLocaleString()} | ${deletionsPercentage}% |`);
-            lines.push(`| **Total Lines Changed** | ${overallTotals.allPRs.totalChanges.toLocaleString()} | ${overallTotals.copilotPRs.totalChanges.toLocaleString()} | ${changesPercentage}% |`);
-            lines.push(`| **Total Files Changed** | ${overallTotals.allPRs.totalFilesChanged.toLocaleString()} | ${overallTotals.copilotPRs.totalFilesChanged.toLocaleString()} | ${filesPercentage}% |`);
+            lines.push(`| **Total Lines Added** | ${formatNumberMetric(overallTotals.allPRs.totalAdditions)} | ${formatNumberMetric(overallTotals.copilotPRs.totalAdditions)} | ${additionsPercentage}% |`);
+            lines.push(`| **Total Lines Deleted** | ${formatNumberMetric(overallTotals.allPRs.totalDeletions)} | ${formatNumberMetric(overallTotals.copilotPRs.totalDeletions)} | ${deletionsPercentage}% |`);
+            lines.push(`| **Total Lines Changed** | ${formatNumberMetric(overallTotals.allPRs.totalChanges)} | ${formatNumberMetric(overallTotals.copilotPRs.totalChanges)} | ${changesPercentage}% |`);
+            lines.push(`| **Total Files Changed** | ${formatNumberMetric(overallTotals.allPRs.totalFilesChanged)} | ${formatNumberMetric(overallTotals.copilotPRs.totalFilesChanged)} | ${filesPercentage}% |`);
         }
     }
     
@@ -935,6 +1064,25 @@ export async function generateMermaidCharts() {
             await writeToStepSummary('<summary>📊 Weekly Line Totals Data</summary>');
             await writeToStepSummary('');
             await writeToStepSummary(weeklyLineTotalsTable);
+            await writeToStepSummary('');
+            await writeToStepSummary('</details>');
+        }
+        
+        // Generate Actions minutes chart and table
+        const actionsMinutesChart = generateActionsMinutesChart(weeklyData);
+        await writeToStepSummary('');
+        await writeToStepSummary('## ⏱️ Copilot Actions Minutes Usage');
+        await writeToStepSummary('');
+        await writeToStepSummary('*This chart displays Copilot-triggered GitHub Actions workflow minutes by week.*');
+        await writeToStepSummary(actionsMinutesChart);
+        
+        // Generate Actions minutes data table
+        const actionsMinutesTable = generateActionsMinutesDataTable(weeklyData);
+        if (actionsMinutesTable !== 'No Copilot Actions data available for table') {
+            await writeToStepSummary('<details>');
+            await writeToStepSummary('<summary>📊 Actions Minutes Data</summary>');
+            await writeToStepSummary('');
+            await writeToStepSummary(actionsMinutesTable);
             await writeToStepSummary('');
             await writeToStepSummary('</details>');
         }
