@@ -729,7 +729,7 @@ export function generateWeeklyLineTotalsDataTable(weeklyData) {
     
     for (const week of sortedWeeks) {
         const totals = lineTotals[week];
-        lines.push(`| ${week} | ${totals.prCount} | ${totals.totalAdditions} | ${totals.totalDeletions} | ${totals.totalChanges} | ${totals.totalFilesChanged} |`);
+        lines.push(`| ${week} | ${formatNumberMetric(totals.prCount)} | ${formatNumberMetric(totals.totalAdditions)} | ${formatNumberMetric(totals.totalDeletions)} | ${formatNumberMetric(totals.totalChanges)} | ${formatNumberMetric(totals.totalFilesChanged)} |`);
     }
     
     return lines.join('\n');
