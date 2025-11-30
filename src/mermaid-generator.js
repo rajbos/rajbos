@@ -217,8 +217,8 @@ export function generatePercentageChart(weeklyData) {
  */
 export function generateRepositoryDataTable(weeklyData) {
     const lines = [];
-    lines.push('| Week | Total PRs | Copilot PRs | Copilot % | Unique Collaborators | Repositories |');
-    lines.push('|------|-----------|-------------|-----------|---------------------|--------------|');
+    lines.push('| Week | Total PRs | Copilot PRs | Copilot % | Actions Runs | Actions Minutes | Unique Collaborators | Repositories |');
+    lines.push('|------|-----------|-------------|-----------|--------------|-----------------|---------------------|--------------|');
     
     // Sort weeks chronologically
     const sortedWeeks = Object.keys(weeklyData).sort((a, b) => {
@@ -234,7 +234,10 @@ export function generateRepositoryDataTable(weeklyData) {
             repositories.join(', ') + ` (+${repositories.length - 3} more)` : 
             repositories.join(', ');
         
-        lines.push(`| ${week} | ${data.totalPRs} | ${data.copilotAssistedPRs} | ${data.copilotPercentage}% | ${data.uniqueCollaborators} | ${repoDisplay} |`);
+        const actionsRuns = data.actionsUsage ? data.actionsUsage.totalRuns : 0;
+        const actionsMinutes = data.actionsUsage ? data.actionsUsage.totalMinutes : 0;
+        
+        lines.push(`| ${week} | ${data.totalPRs} | ${data.copilotAssistedPRs} | ${data.copilotPercentage}% | ${actionsRuns} | ${actionsMinutes} | ${data.uniqueCollaborators} | ${repoDisplay} |`);
     }
     
     return lines.join('\n');
@@ -741,6 +744,14 @@ export function generateSummaryStats(results) {
     
     if (results.totalCopilotAgentPRs !== undefined) {
         lines.push(`- **Copilot Agent PRs**: ${results.totalCopilotAgentPRs}`);
+    }
+    
+    if (results.totalActionsRuns !== undefined) {
+        lines.push(`- **Copilot-triggered Actions runs**: ${results.totalActionsRuns}`);
+    }
+    
+    if (results.totalActionsMinutes !== undefined) {
+        lines.push(`- **Copilot Actions minutes used**: ${results.totalActionsMinutes}`);
     }
     
     // Calculate total lines of code added/deleted across all weeks
