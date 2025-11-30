@@ -253,7 +253,7 @@ export function generateRepositoryDataTable(weeklyData) {
         const actionsRuns = data.actionsUsage ? data.actionsUsage.totalRuns : 0;
         const actionsMinutes = data.actionsUsage ? data.actionsUsage.totalMinutes : 0;
         
-        lines.push(`| ${week} | ${data.totalPRs} | ${data.copilotAssistedPRs} | ${data.copilotPercentage}% | ${actionsRuns} | ${actionsMinutes} | ${data.uniqueCollaborators} | ${repoDisplay} |`);
+        lines.push(`| ${week} | ${formatNumberMetric(data.totalPRs)} | ${formatNumberMetric(data.copilotAssistedPRs)} | ${formatNumberMetric(data.copilotPercentage)}% | ${formatNumberMetric(actionsRuns)} | ${formatNumberMetric(actionsMinutes)} | ${formatNumberMetric(data.uniqueCollaborators)} | ${repoDisplay} |`);
     }
     
     return lines.join('\n');
@@ -571,7 +571,7 @@ export function generateLineChangesDataTable(weeklyData) {
     
     for (const week of sortedWeeks) {
         const stats = lineStats[week];
-        lines.push(`| ${week} | ${stats.prCount} | ${stats.changes.min} | ${stats.changes.avg} | ${stats.changes.max} | ${stats.additions.min} | ${stats.additions.avg} | ${stats.additions.max} | ${stats.deletions.min} | ${stats.deletions.avg} | ${stats.deletions.max} |`);
+        lines.push(`| ${week} | ${formatNumberMetric(stats.prCount)} | ${formatNumberMetric(stats.changes.min)} | ${formatNumberMetric(stats.changes.avg)} | ${formatNumberMetric(stats.changes.max)} | ${formatNumberMetric(stats.additions.min)} | ${formatNumberMetric(stats.additions.avg)} | ${formatNumberMetric(stats.additions.max)} | ${formatNumberMetric(stats.deletions.min)} | ${formatNumberMetric(stats.deletions.avg)} | ${formatNumberMetric(stats.deletions.max)} |`);
     }
     
     return lines.join('\n');
