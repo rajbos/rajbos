@@ -122,7 +122,7 @@ jobs:
           fi
 
       - name: Run PR analysis with charts
-        uses: ./.github/actions
+        uses: devops-actions/github-copilot-pr-analysis@v0.0.3
         with:
           github_token: ${{ secrets.GH_PAT }}
           output_format: ${{ github.event.inputs.output_format || 'json' }}
@@ -133,7 +133,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: pr-analysis-results
-          path: pr_analysis_*.json
+          path: report/pr_analysis_*
           retention-days: 30
       
       - name: Upload CSV results (if generated)
@@ -141,5 +141,5 @@ jobs:
         if: env.OUTPUT_FORMAT == 'csv' || github.event.inputs.output_format == 'csv'
         with:
           name: pr-analysis-results-csv
-          path: pr_analysis_*.csv
+          path: report/pr_analysis_*.csv
           retention-days: 30
