@@ -130,14 +130,14 @@ jobs:
           clean_cache: ${{ github.event.inputs.clean_cache || 'false' }}
       
       - name: Upload analysis results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: pr-analysis-results
           path: report/pr_analysis_*
           retention-days: 30
       
       - name: Upload CSV results (if generated)
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: env.OUTPUT_FORMAT == 'csv' || github.event.inputs.output_format == 'csv'
         with:
           name: pr-analysis-results-csv
