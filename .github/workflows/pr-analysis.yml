@@ -29,6 +29,7 @@ name: PR Analysis with Copilot Detection
       
 jobs:
   analyze-prs:
+    if: github.actor != 'dependabot[bot]'
     name: Analyze Pull Requests and Copilot Collaboration
     runs-on: ubuntu-latest
     
