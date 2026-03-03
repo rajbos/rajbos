@@ -27,6 +27,9 @@ name: PR Analysis with Copilot Detection
       - package.json
       - package-lock.json
       
+permissions:
+  contents: read
+
 jobs:
   analyze-prs:
     if: github.actor != 'dependabot[bot]'
@@ -38,11 +41,16 @@ jobs:
       pull-requests: read
     
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@a90bcbc6539c36a85cdfeb73f7e2f433735f215b # v2.15.0
+        with:
+          egress-policy: audit
+
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       
       - name: Cache HTTP requests
-        uses: actions/cache@v5
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: .http_cache
           key: http-cache-${{ hashFiles('package-lock.json') }}-${{ github.run_number }}
@@ -123,7 +131,7 @@ jobs:
           fi
 
       - name: Run PR analysis with charts
-        uses: devops-actions/github-copilot-pr-analysis@v0.0.4
+        uses: devops-actions/github-copilot-pr-analysis@fce48b36148522d63d051e7e472921cf2ed45047 # v0.0.4
         with:
           github_token: ${{ secrets.GH_PAT }}
           output_format: ${{ github.event.inputs.output_format || 'json' }}
@@ -131,14 +139,14 @@ jobs:
           clean_cache: ${{ github.event.inputs.clean_cache || 'false' }}
       
       - name: Upload analysis results
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: pr-analysis-results
           path: report/pr_analysis_*
           retention-days: 30
       
       - name: Upload CSV results (if generated)
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: env.OUTPUT_FORMAT == 'csv' || github.event.inputs.output_format == 'csv'
         with:
           name: pr-analysis-results-csv
