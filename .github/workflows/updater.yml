@@ -1,18 +1,26 @@
-name: updater
+name: Updater
 on:  
   schedule:
     - cron: '5 23 * * *'
   workflow_dispatch:
 
+permissions: read-all
+
 jobs:
   update-readme-with-blog:
     name: Update this repo's README with latest blog posts
     runs-on: ubuntu-latest
+    permissions: 
+      contents: write # needed to be able to post the RSS updates
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@a90bcbc6539c36a85cdfeb73f7e2f433735f215b # v2.15.0
         with:
-          egress-policy: audit
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            devopsjournal.io:443          
 
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
