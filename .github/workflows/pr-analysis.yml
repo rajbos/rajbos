@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   analyze-prs:
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && github.event.head_commit.author.name != 'dependabot[bot]'
     name: Analyze Pull Requests and Copilot Collaboration
     runs-on: ubuntu-latest
     
