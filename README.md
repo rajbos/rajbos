@@ -18,11 +18,11 @@ You can [sponsor me](https://github.com/sponsors/rajbos/) using GitHub sponsors 
 
 ## 🍵 Latest blog posts
 <!-- BLOG-POST-LIST:START -->
+- [Running GitHub Copilot CLI on local AI inference](https://devopsjournal.io/blog/2026/04/12/Running-GitHub-Copilot-CLI-on-local-AI)
 - [Show you Microsoft Certification badges in Credly](https://devopsjournal.io/blog/2026/02/02/Link-MS-certification-to-Credly)
 - [GitHub Copilot - Coding Agent Examples Walkthrough](https://devopsjournal.io/blog/2025/12/20/Copilot-Agent-example)
 - [GitHub Copilot Premium Requests](https://devopsjournal.io/blog/2025/06/17/Copilot-premium-requests)
 - [GitHub Copilot &amp; Productivity](https://devopsjournal.io/blog/2025/06/07/Copilot-and-productivity)
-- [GitHub Copilot - Change the Narrative](https://devopsjournal.io/blog/2025/04/01/GitHub-Copilot-Change-the-Narrative)
 <!-- BLOG-POST-LIST:END -->
 
 ## GitHub Actions Internal Marketplace 🍵
