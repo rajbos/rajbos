@@ -18,11 +18,11 @@ You can [sponsor me](https://github.com/sponsors/rajbos/) using GitHub sponsors 
 
 ## 🍵 Latest blog posts
 <!-- BLOG-POST-LIST:START -->
+- [GitHub governance reference links I share with teams](https://devopsjournal.io/blog/2026/07/13/github-governance-resource-map)
 - [AI Engineering Fluency: tracking your AI coding habits](https://devopsjournal.io/blog/2026/05/15/ai-engineering-fluency-extension)
 - [The AI subsidy era is ending: time to talk business value](https://devopsjournal.io/blog/2026/05/15/ai-billing-business-value)
 - [GitHub Copilot App is now in Technical Preview](https://devopsjournal.io/blog/2026/05/14/github-copilot-app)
 - [Shooting yourself in the foot with AI](https://devopsjournal.io/blog/2026/05/08/Copilot-mishap)
-- [My Open Source Projects](https://devopsjournal.io/blog/2026/05/06/OSS-projects)
 <!-- BLOG-POST-LIST:END -->
 
 ## GitHub Actions Internal Marketplace 🍵
