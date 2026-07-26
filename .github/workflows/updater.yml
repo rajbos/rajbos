@@ -26,7 +26,7 @@ jobs:
             devopsjournal.io:443          
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         
       - name: Pull in last 5 blog posts
         uses: rajbos-actions/blog-post-workflow@6da0638f66000902e4eb30ce05ed6a9d160c0c05 # master
