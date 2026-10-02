@@ -29,10 +29,10 @@
     "glob": "^13.0.6"
   },
   "devDependencies": {
-    "jest": "^30.5.1",
-    "eslint": "^10.10.0",
-    "@babel/core": "^8.0.5",
-    "@babel/preset-env": "^8.0.5",
+    "jest": "^30.5.2",
+    "eslint": "^10.11.0",
+    "@babel/core": "^8.0.6",
+    "@babel/preset-env": "^8.0.6",
     "babel-jest": "^30.3.0"
   },
   "overrides": {
